@@ -5692,9 +5692,11 @@ function query (el) {
   if (typeof el === 'string') {
     var selected = document.querySelector(el);
     if (!selected) {
+      // 如果找不到根元素，在非生产环境下会报出警告
       warn(
         'Cannot find element: ' + el
       );
+      // 默认创建一个div标签返回
       return document.createElement('div')
     }
     return selected
