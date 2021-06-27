@@ -4,6 +4,7 @@ import { hasOwn } from 'shared/util'
 import { warn, hasSymbol } from '../util/index'
 import { defineReactive, toggleObserving } from '../observer/index'
 
+// 初始化Vue实例的_provided方法
 export function initProvide (vm: Component) {
   const provide = vm.$options.provide
   if (provide) {
@@ -13,8 +14,11 @@ export function initProvide (vm: Component) {
   }
 }
 
+// 初始化依赖注入
 export function initInjections (vm: Component) {
+  // 根据inject，获取vm的provide中提供的对应依赖
   const result = resolveInject(vm.$options.inject, vm)
+  // 将依赖绑定到vm实例上，并注册为响应式数据
   if (result) {
     toggleObserving(false)
     Object.keys(result).forEach(key => {

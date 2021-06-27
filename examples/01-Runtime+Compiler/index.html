@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Runtime+Compiler</title>
 </head>
+
 <body>
   <div id="app">
     Hello World
   </div>
 
-  <script src="../../dist/vue.runtime.js"></script>
+  <script src="../../dist/vue.js"></script>
   <script>
     // compiler
     // 需要编译器，把 template 转换成 render 函数
@@ -41,8 +43,19 @@
       template: '<h1>Hello Template</h1>',
       render(h) {
         return h('h1', 'Hello Render')
+      },
+      data: {
+        a: 1
+      },
+      props: ['postTitle', 'test', 'plus'],
+      methods: {
+        plus: function () {
+          this.a++
+        }
       }
     })
+
   </script>
 </body>
+
 </html>

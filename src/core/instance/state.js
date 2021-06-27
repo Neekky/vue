@@ -49,14 +49,26 @@ export function proxy (target: Object, sourceKey: string, key: string) {
 export function initState (vm: Component) {
   vm._watchers = []
   const opts = vm.$options
+
+  // 把props种成员转换成响应式数据，并注入到Vue实例中
   if (opts.props) initProps(vm, opts.props)
+
+  // 初始化method，并挂载到Vue实例上
   if (opts.methods) initMethods(vm, opts.methods)
+
+
   if (opts.data) {
+    // 将data里的成员注入到Vue实例上，并把data对象转换成一个响应式对象
     initData(vm)
   } else {
+    // 没有data属性，则初始化一个空对象，并转换成响应式对象
     observe(vm._data = {}, true /* asRootData */)
   }
+
+  // 注入计算属性
   if (opts.computed) initComputed(vm, opts.computed)
+
+  // 注入侦听器
   if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch)
   }
@@ -79,6 +91,7 @@ function initProps (vm: Component, propsOptions: Object) {
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
       const hyphenatedKey = hyphenate(key)
+      // 校验用户是否定义保留属性
       if (isReservedAttribute(hyphenatedKey) ||
           config.isReservedAttr(hyphenatedKey)) {
         warn(
@@ -88,6 +101,7 @@ function initProps (vm: Component, propsOptions: Object) {
       }
       defineReactive(props, key, value, () => {
         if (!isRoot && !isUpdatingChildComponent) {
+          // 警告不要给props中的属性赋值
           warn(
             `Avoid mutating a prop directly since the value will be ` +
             `overwritten whenever the parent component re-renders. ` +
@@ -113,7 +127,9 @@ function initProps (vm: Component, propsOptions: Object) {
 function initData (vm: Component) {
   let data = vm.$options.data
   data = vm._data = typeof data === 'function'
+    // 如果是函数，则将其作为函数执行一遍，获取返回的对象
     ? getData(data, vm)
+    // 非函数则直接赋值
     : data || {}
   if (!isPlainObject(data)) {
     data = {}
@@ -125,6 +141,7 @@ function initData (vm: Component) {
   }
   // proxy data on instance
   const keys = Object.keys(data)
+  // 判断data是否和props、methods有同名属性
   const props = vm.$options.props
   const methods = vm.$options.methods
   let i = keys.length
@@ -145,10 +162,13 @@ function initData (vm: Component) {
         vm
       )
     } else if (!isReserved(key)) {
+      // 如果非保留属性，则将该属性注入到Vue实例中
       proxy(vm, `_data`, key)
     }
   }
+
   // observe data
+  // 最后将data转换为响应式对象
   observe(data, true /* asRootData */)
 }
 
@@ -266,6 +286,7 @@ function initMethods (vm: Component, methods: Object) {
   const props = vm.$options.props
   for (const key in methods) {
     if (process.env.NODE_ENV !== 'production') {
+      // 警告传入方法非函数
       if (typeof methods[key] !== 'function') {
         warn(
           `Method "${key}" has type "${typeof methods[key]}" in the component definition. ` +
@@ -273,12 +294,16 @@ function initMethods (vm: Component, methods: Object) {
           vm
         )
       }
+
+      // 警告方法和属性名冲突
       if (props && hasOwn(props, key)) {
         warn(
           `Method "${key}" has already been defined as a prop.`,
           vm
         )
       }
+
+      // 判断方法名是否已 _ 或 $ 开头
       if ((key in vm) && isReserved(key)) {
         warn(
           `Method "${key}" conflicts with an existing Vue instance method. ` +
@@ -286,6 +311,7 @@ function initMethods (vm: Component, methods: Object) {
         )
       }
     }
+    // 不是函数默认绑定空函数，是函数则将this指向vm
     vm[key] = typeof methods[key] !== 'function' ? noop : bind(methods[key], vm)
   }
 }

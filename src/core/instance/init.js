@@ -16,8 +16,10 @@ export function initMixin (Vue: Class<Component>) {
   Vue.prototype._init = function (options?: Object) {
     const vm: Component = this
     // a uid
+    // 定义唯一标识
     vm._uid = uid++
 
+    // 性能检测相关
     let startTag, endTag
     /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
@@ -27,8 +29,11 @@ export function initMixin (Vue: Class<Component>) {
     }
 
     // a flag to avoid this being observed
+    // 标识vm对象为Vue实例，避免被observe，响应处理
     vm._isVue = true
+
     // merge options
+    // 合并options，将用户传入的options和Vue构造函数中的options合并
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
@@ -41,7 +46,9 @@ export function initMixin (Vue: Class<Component>) {
         vm
       )
     }
+
     /* istanbul ignore else */
+    // 初始化renderProxy
     if (process.env.NODE_ENV !== 'production') {
       initProxy(vm)
     } else {
@@ -49,13 +56,31 @@ export function initMixin (Vue: Class<Component>) {
     }
     // expose real self
     vm._self = vm
+
+    // vm 的生命周期相关变量初始化
+    // $children/$parent/$root/$refs
     initLifecycle(vm)
+
+    // vm 的事件监听初始化, 父组件绑定在当前组件上的事件
     initEvents(vm)
+
+    // vm 的编译render初始化，主要初始化h函数
+    // $slots/$scopedSlots/_c/$createElement/$attrs/$listeners
     initRender(vm)
+
+    // 触发第一个生命周期函数， beforeCreate 生命钩子的回调
     callHook(vm, 'beforeCreate')
+
+    // 把 inject 的成员注入到 vm 上，依赖注入
     initInjections(vm) // resolve injections before data/props
+
+    // 初始化 vm 的 _props/methods/_data/computed/watch
     initState(vm)
+
+    // 初始化 Vue实例的provide属性，用于保存父组件的依赖
     initProvide(vm) // resolve provide after data/props
+
+    // 触发第一个生命周期函数， created 生命钩子的回调
     callHook(vm, 'created')
 
     /* istanbul ignore if */
@@ -65,6 +90,7 @@ export function initMixin (Vue: Class<Component>) {
       measure(`vue ${vm._name} init`, startTag, endTag)
     }
 
+    // 调用 $mount() 挂载整个页面
     if (vm.$options.el) {
       vm.$mount(vm.$options.el)
     }

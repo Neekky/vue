@@ -23,15 +23,30 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   const configDef = {}
   configDef.get = () => config
   if (process.env.NODE_ENV !== 'production') {
+    // 如果是非生产环境，则会添加一个set方法，警告开发人员，不要去给config对象重新赋值
     configDef.set = () => {
+      console.log("我被设置啦")
       warn(
         'Do not replace the Vue.config object, set individual fields instead.'
       )
     }
   }
-
+  const testConfigDef = {}
+  testConfigDef.get = () => {
+    return {a: 1}
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    // 如果是非生产环境，则会添加一个set方法，警告开发人员，不要去给config对象重新赋值
+    testConfigDef.set = () => {
+      console.log("我被设置啦")
+      warn(
+        'Do not replace the Vue.config object, set individual fields instead.'
+      )
+    }
+  }
   // 初始化Vue config对象
   Object.defineProperty(Vue, 'config', configDef)
+  Object.defineProperty(Vue, 'testConfig', testConfigDef)
 
   // exposed util methods.
   // NOTE: these are not considered part of the public API - avoid relying on
@@ -57,6 +72,7 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   }
 
   // 初始化 Vue.options 对象，并给其扩展
+  // 也就是'components','directives','filters'，存储全局的组件、指令、过滤器
   Vue.options = Object.create(null)
   ASSET_TYPES.forEach(type => {
     Vue.options[type + 's'] = Object.create(null)
@@ -64,9 +80,11 @@ export function initGlobalAPI (Vue: GlobalAPI) {
 
   // this is used to identify the "base" constructor to extend all plain-object
   // components with in Weex's multi-instance scenarios.
+  // 记录当前的Vue构造函数
   Vue.options._base = Vue
 
-  // 设置keep-alive组件
+  // 注册了内置的keep-alive组件到全局，这里把一个对象所有属性拷贝到另一个对象中来
+  // 
   extend(Vue.options.components, builtInComponents)
 
   // 注册Vue.use()用来注册组件
