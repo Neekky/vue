@@ -35,23 +35,32 @@ export function toggleObserving (value: boolean) {
  * collect dependencies and dispatch updates.
  */
 export class Observer {
+  // 观测对象
   value: any;
+  // 依赖对象
   dep: Dep;
+  // 实例计数器
   vmCount: number; // number of vms that have this object as root $data
 
   constructor (value: any) {
     this.value = value
     this.dep = new Dep()
+    // 初始化实例的vmCount为0
     this.vmCount = 0
+    // 将实例挂载到对象的__ob__属性
     def(value, '__ob__', this)
+
+    // 对数组做额外的响应式处理
     if (Array.isArray(value)) {
       if (hasProto) {
         protoAugment(value, arrayMethods)
       } else {
         copyAugment(value, arrayMethods, arrayKeys)
       }
+      // 为数组中的每一个对象创建一个observer实例
       this.observeArray(value)
     } else {
+      // 遍历对象中的每一个属性，转换成setter/getter
       this.walk(value)
     }
   }
@@ -62,7 +71,9 @@ export class Observer {
    * value type is Object.
    */
   walk (obj: Object) {
+    // 获取观察对象的每一个属性
     const keys = Object.keys(obj)
+    
     for (let i = 0; i < keys.length; i++) {
       defineReactive(obj, keys[i])
     }
@@ -70,6 +81,7 @@ export class Observer {
 
   /**
    * Observe a list of Array items.
+   * 对数组做响应式处理
    */
   observeArray (items: Array<any>) {
     for (let i = 0, l = items.length; i < l; i++) {
@@ -131,6 +143,11 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
 
 /**
  * Define a reactive property on an Object.
+ * 为一个对象定义一个响应式属性
+ * 相较于我们之前自己实现的多了些处理，比如收集依赖、数据变化时发送通知
+ * 
+ * shallow：浅的意思，如果为ture，则只监听对象第一层属性；如果为false，则是深度监听，
+ * 当值为对象时还要深度监听对象中每一个值得变化。
  */
 export function defineReactive (
   obj: Object,
@@ -139,26 +156,35 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
+  // 创建依赖对象实例，负责为当前key属性收集依赖，也就是所有watcher
   const dep = new Dep()
 
+  // 获取 obj 的属性描述符对象
   const property = Object.getOwnPropertyDescriptor(obj, key)
   if (property && property.configurable === false) {
     return
   }
 
   // cater for pre-defined getter/setters
+  // 缓存用户可能定义的getter、setter，对其进行包装
   const getter = property && property.get
   const setter = property && property.set
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key]
   }
 
+  // 判断是否递归观察子对象，并将子对象属性都转换成getter/setter，返回子观察对象
   let childOb = !shallow && observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter () {
+      // 如果用户预定义的getter存在，则value等于getter调用后的返回值
+      // 否则直接赋予属性值
       const value = getter ? getter.call(obj) : val
+
+      // 下面部分为收集依赖
+      // 如果存在当前依赖目标，即 watcher 对象，则建立依赖
       if (Dep.target) {
         dep.depend()
         if (childOb) {
@@ -168,10 +194,15 @@ export function defineReactive (
           }
         }
       }
+      // 返回属性值
       return value
     },
+
     set: function reactiveSetter (newVal) {
+      // 如果预定义的 getter 存在，则 value 等于 getter 调用返回的值
+      // 否则直接赋予属性值
       const value = getter ? getter.call(obj) : val
+      // 如果新值等于旧值，或者存在NaN情况时，就直接终止
       /* eslint-disable no-self-compare */
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
@@ -180,14 +211,22 @@ export function defineReactive (
       if (process.env.NODE_ENV !== 'production' && customSetter) {
         customSetter()
       }
+
+      // 如果没有setter则直接返回 
       // #7981: for accessor properties without setter
       if (getter && !setter) return
+      // 如果setter存在，则调用赋值
       if (setter) {
         setter.call(obj, newVal)
       } else {
+        // 如果setter、getter都不存在，直接把新值赋给旧值
         val = newVal
       }
+
+      // 如果非浅层监听，且新值为对象，继续递归观察子对象，并将ob重新赋值。
       childOb = !shallow && observe(newVal)
+
+      // 派发更新，发布通知
       dep.notify()
     }
   })

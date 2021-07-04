@@ -169,6 +169,7 @@ export function mountComponent (
   let updateComponent
   /* istanbul ignore if */
   if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
+    // 开发环境会执行很多平台优化相关代码
     updateComponent = () => {
       const name = vm._name
       const id = vm._uid

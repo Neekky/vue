@@ -14,6 +14,7 @@ const idToTemplate = cached(id => {
   return el && el.innerHTML
 })
 
+// 将之前的mount保存起来，重新定义Vue原型上的$mount，给它添加上编译器
 const mount = Vue.prototype.$mount
 
 // $mount是把生成的DOM挂载到页面上来
@@ -74,7 +75,7 @@ Vue.prototype.$mount = function (
       if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
         mark('compile')
       }
-      // 生成render函数
+      // 生成render函数，staticRenderFns起优化的作用
       const { render, staticRenderFns } = compileToFunctions(template, {
         outputSourceRange: process.env.NODE_ENV !== 'production',
         shouldDecodeNewlines,
@@ -110,6 +111,7 @@ function getOuterHTML (el: Element): string {
   }
 }
 
+// 手动把模板转成render函数
 Vue.compile = compileToFunctions
 
 export default Vue
