@@ -18,7 +18,7 @@ export function query (el: string | Element): Element {
         'Cannot find element: ' + el
       )
       // 默认创建一个div标签返回
-      return document.createElement('div')
+      return document.createElement('div');
     }
     return selected
   } else {
