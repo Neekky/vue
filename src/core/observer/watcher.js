@@ -100,6 +100,7 @@ export default class Watcher {
    * Evaluate the getter, and re-collect dependencies.
    */
   get () {
+    // 将watcher实例赋值为Dep.target
     pushTarget(this)
     let value
     const vm = this.vm
@@ -128,10 +129,14 @@ export default class Watcher {
    */
   addDep (dep: Dep) {
     const id = dep.id
+    // 这个newDepIds是一个set对象，如果其中没有当前id
+    // 则将id和dep对象，存储到这watcher实例的对应集合中
     if (!this.newDepIds.has(id)) {
+      // 这个dep和watcher和我们之前实现的有些区别，在Vue的watcher中也存储了dep，它是为了处理一个细节，视频中没深入。
       this.newDepIds.add(id)
       this.newDeps.push(dep)
       if (!this.depIds.has(id)) {
+        // 最后将watcher对象，添加到dep的subs中
         dep.addSub(this)
       }
     }

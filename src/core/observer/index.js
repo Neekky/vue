@@ -52,6 +52,7 @@ export class Observer {
 
     // 对数组做额外的响应式处理
     if (Array.isArray(value)) {
+      // 判断当前浏览器是否支持proto，处理兼容性问题
       if (hasProto) {
         protoAugment(value, arrayMethods)
       } else {
@@ -96,6 +97,7 @@ export class Observer {
  * Augment a target Object or Array by intercepting
  * the prototype chain using __proto__
  */
+// 重新设置数组的原型属性
 function protoAugment (target, src: Object) {
   /* eslint-disable no-proto */
   target.__proto__ = src
@@ -157,6 +159,7 @@ export function defineReactive (
   shallow?: boolean
 ) {
   // 创建依赖对象实例，负责为当前key属性收集依赖，也就是所有watcher
+  // 它和observer的dep不一样
   const dep = new Dep()
 
   // 获取 obj 的属性描述符对象
@@ -188,6 +191,7 @@ export function defineReactive (
       if (Dep.target) {
         dep.depend()
         if (childOb) {
+          // 这里的dep是为当前的这个子对象收集依赖，当子对象发生添加或删除操作时，就可以发送通知
           childOb.dep.depend()
           if (Array.isArray(value)) {
             dependArray(value)
