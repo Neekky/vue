@@ -105,6 +105,7 @@ export default class Watcher {
     let value
     const vm = this.vm
     try {
+      console.log(this.getter, "this.getter")
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
@@ -144,6 +145,7 @@ export default class Watcher {
 
   /**
    * Clean up for dependency collection.
+   * 清理newDeps里没有的无用watcher依赖
    */
   cleanupDeps () {
     let i = this.deps.length

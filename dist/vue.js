@@ -707,6 +707,7 @@
 
   /*  */
 
+  // 初始为0
   var uid = 0;
 
   /**
@@ -714,6 +715,7 @@
    * directives subscribing to it.
    */
   var Dep = function Dep () {
+    // 每创建一个dep，都会使id++
     this.id = uid++;
     this.subs = [];
   };
@@ -726,8 +728,11 @@
     remove(this.subs, sub);
   };
 
+  // 将观察对象和watcher建立依赖
   Dep.prototype.depend = function depend () {
     if (Dep.target) {
+      // 如果 target 存在，则把 dep 对象添加到 watcher 的依赖中
+      // 此时的this指向的是dep实例？没错，因为方法是dep实例所调用的。
       Dep.target.addDep(this);
     }
   };
@@ -749,10 +754,13 @@
   // The current target watcher being evaluated.
   // This is globally unique because only one watcher
   // can be evaluated at a time.
+  // Dep.target 用来存放目前正在使用的watcher
+  // 全局唯一，并且一次也只能有一个watcher被使用
   Dep.target = null;
   var targetStack = [];
 
   function pushTarget (target) {
+    // 将当前target（watcher实例）入栈，并将当前target（watcher实例）赋值给target
     targetStack.push(target);
     Dep.target = target;
   }
@@ -922,16 +930,23 @@
   var Observer = function Observer (value) {
     this.value = value;
     this.dep = new Dep();
+    // 初始化实例的vmCount为0
     this.vmCount = 0;
+    // 将实例挂载到对象的__ob__属性
     def(value, '__ob__', this);
+
+    // 对数组做额外的响应式处理
     if (Array.isArray(value)) {
+      // 判断当前浏览器是否支持proto，处理兼容性问题
       if (hasProto) {
         protoAugment(value, arrayMethods);
       } else {
         copyAugment(value, arrayMethods, arrayKeys);
       }
+      // 为数组中的每一个对象创建一个observer实例
       this.observeArray(value);
     } else {
+      // 遍历对象中的每一个属性，转换成setter/getter
       this.walk(value);
     }
   };
@@ -942,7 +957,9 @@
    * value type is Object.
    */
   Observer.prototype.walk = function walk (obj) {
+    // 获取观察对象的每一个属性
     var keys = Object.keys(obj);
+      
     for (var i = 0; i < keys.length; i++) {
       defineReactive$$1(obj, keys[i]);
     }
@@ -950,6 +967,7 @@
 
   /**
    * Observe a list of Array items.
+   * 对数组做响应式处理
    */
   Observer.prototype.observeArray = function observeArray (items) {
     for (var i = 0, l = items.length; i < l; i++) {
@@ -963,6 +981,7 @@
    * Augment a target Object or Array by intercepting
    * the prototype chain using __proto__
    */
+  // 重新设置数组的原型属性
   function protoAugment (target, src) {
     /* eslint-disable no-proto */
     target.__proto__ = src;
@@ -1010,6 +1029,11 @@
 
   /**
    * Define a reactive property on an Object.
+   * 为一个对象定义一个响应式属性
+   * 相较于我们之前自己实现的多了些处理，比如收集依赖、数据变化时发送通知
+   * 
+   * shallow：浅的意思，如果为ture，则只监听对象第一层属性；如果为false，则是深度监听，
+   * 当值为对象时还要深度监听对象中每一个值得变化。
    */
   function defineReactive$$1 (
     obj,
@@ -1018,39 +1042,58 @@
     customSetter,
     shallow
   ) {
+    // 创建依赖对象实例，负责为当前key属性收集依赖，也就是所有watcher
+    // 它和observer的dep不一样
     var dep = new Dep();
 
+    // 获取 obj 的属性描述符对象
     var property = Object.getOwnPropertyDescriptor(obj, key);
     if (property && property.configurable === false) {
       return
     }
 
     // cater for pre-defined getter/setters
+    // 缓存用户可能定义的getter、setter，对其进行包装
     var getter = property && property.get;
     var setter = property && property.set;
     if ((!getter || setter) && arguments.length === 2) {
       val = obj[key];
     }
 
+    // 判断是否递归观察子对象，并将子对象属性都转换成getter/setter，返回子观察对象
     var childOb = !shallow && observe(val);
     Object.defineProperty(obj, key, {
       enumerable: true,
       configurable: true,
       get: function reactiveGetter () {
+        // 如果用户预定义的getter存在，则value等于getter调用后的返回值
+        // 否则直接赋予属性值
         var value = getter ? getter.call(obj) : val;
+
+        // 下面部分为收集依赖
+        // 如果存在当前依赖目标，即 watcher 对象，则建立依赖
         if (Dep.target) {
+          // 为该属性收集依赖
           dep.depend();
           if (childOb) {
+            // 这里的dep是为当前的这个子对象收集依赖，当子对象发生添加或删除操作时，就可以发送通知
             childOb.dep.depend();
             if (Array.isArray(value)) {
+              // 如果该属性为数组，则会寻找数组中为“对象”的元素，判断其有没有__ob__（observer对象）
+              // 如果有的话，则将当前的watcher添加到其dep中去，当数据变化时，通知它改变
               dependArray(value);
             }
           }
         }
+        // 返回属性值
         return value
       },
+
       set: function reactiveSetter (newVal) {
+        // 如果预定义的 getter 存在，则 value 等于 getter 调用返回的值
+        // 否则直接赋予属性值
         var value = getter ? getter.call(obj) : val;
+        // 如果新值等于旧值，或者存在NaN情况时，就直接终止
         /* eslint-disable no-self-compare */
         if (newVal === value || (newVal !== newVal && value !== value)) {
           return
@@ -1059,14 +1102,22 @@
         if (customSetter) {
           customSetter();
         }
+
+        // 如果没有setter则直接返回 
         // #7981: for accessor properties without setter
         if (getter && !setter) { return }
+        // 如果setter存在，则调用赋值
         if (setter) {
           setter.call(obj, newVal);
         } else {
+          // 如果setter、getter都不存在，直接把新值赋给旧值
           val = newVal;
         }
+
+        // 如果非浅层监听，且新值为对象，继续递归观察子对象，并将ob重新赋值。
         childOb = !shallow && observe(newVal);
+
+        // 派发更新，发布通知
         dep.notify();
       }
     });
@@ -1145,6 +1196,7 @@
   function dependArray (value) {
     for (var e = (void 0), i = 0, l = value.length; i < l; i++) {
       e = value[i];
+      // 如果数组的元素有为对象或数组的，会执行后面的depend方法。
       e && e.__ob__ && e.__ob__.dep.depend();
       if (Array.isArray(e)) {
         dependArray(e);
@@ -4068,6 +4120,7 @@
     var updateComponent;
     /* istanbul ignore if */
     if (config.performance && mark) {
+      // 开发环境会执行很多平台优化相关代码
       updateComponent = function () {
         var name = vm._name;
         var id = vm._uid;
@@ -4494,10 +4547,12 @@
    * Evaluate the getter, and re-collect dependencies.
    */
   Watcher.prototype.get = function get () {
+    // 将watcher实例赋值为Dep.target
     pushTarget(this);
     var value;
     var vm = this.vm;
     try {
+      console.log(this.getter, "this.getter");
       value = this.getter.call(vm, vm);
     } catch (e) {
       if (this.user) {
@@ -4522,10 +4577,14 @@
    */
   Watcher.prototype.addDep = function addDep (dep) {
     var id = dep.id;
+    // 这个newDepIds是一个set对象，如果其中没有当前id
+    // 则将id和dep对象，存储到这watcher实例的对应集合中
     if (!this.newDepIds.has(id)) {
+      // 这个dep和watcher和我们之前实现的有些区别，在Vue的watcher中也存储了dep，它是为了处理一个细节，视频中没深入。
       this.newDepIds.add(id);
       this.newDeps.push(dep);
       if (!this.depIds.has(id)) {
+        // 最后将watcher对象，添加到dep的subs中
         dep.addSub(this);
       }
     }
@@ -4533,6 +4592,7 @@
 
   /**
    * Clean up for dependency collection.
+   * 清理newDeps里没有的无用watcher依赖
    */
   Watcher.prototype.cleanupDeps = function cleanupDeps () {
     var i = this.deps.length;
@@ -5831,7 +5891,7 @@
           'Cannot find element: ' + el
         );
         // 默认创建一个div标签返回
-        return document.createElement('div')
+        return document.createElement('div');
       }
       return selected
     } else {
@@ -12046,6 +12106,7 @@
     return el && el.innerHTML
   });
 
+  // 将之前的mount保存起来，重新定义Vue原型上的$mount，给它添加上编译器
   var mount = Vue.prototype.$mount;
 
   // $mount是把生成的DOM挂载到页面上来
@@ -12106,7 +12167,7 @@
         if (config.performance && mark) {
           mark('compile');
         }
-        // 生成render函数
+        // 生成render函数，staticRenderFns起优化的作用
         var ref = compileToFunctions(template, {
           outputSourceRange: "development" !== 'production',
           shouldDecodeNewlines: shouldDecodeNewlines,
@@ -12144,6 +12205,7 @@
     }
   }
 
+  // 手动把模板转成render函数
   Vue.compile = compileToFunctions;
 
   return Vue;
