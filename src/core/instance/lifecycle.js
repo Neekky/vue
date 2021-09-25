@@ -188,6 +188,7 @@ export function mountComponent (
     }
   } else {
     updateComponent = () => {
+      // 这里的_render是用户传入的render或者是编译出来的render，作用是生成虚拟DOM
       vm._update(vm._render(), hydrating)
     }
   }
@@ -201,7 +202,7 @@ export function mountComponent (
         callHook(vm, 'beforeUpdate')
       }
     }
-  }, true /* isRenderWatcher */)
+  }, true /* isRenderWatcher */) // 标识为渲染watcher
   hydrating = false
 
   // manually mounted instance, call mounted on self

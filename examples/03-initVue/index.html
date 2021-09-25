@@ -1,14 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>initVue</title>
 </head>
+
 <body>
   <div id="app">
-    <div><h1>Hello World</h1></div>
+    <div>
+      <h1>Hello World</h1>
+    </div>
     {{ msg }}
+    <div id="a">abc</div>
   </div>
 
   <script src="../../dist/vue.js"></script>
@@ -19,6 +24,21 @@
         msg: 'Hello Vue'
       }
     })
+
+    const a = document.getElementById("a");
+    const fn = new Promise((res, rej) => {
+      const bbb = a.onclick = () => {
+        console.log(123);
+        res("1111");
+        console.log(bbb);
+      }
+    })
+
+    fn.then(res => {
+      console.log(res, "真的可以啊");
+    })
+
   </script>
 </body>
+
 </html>

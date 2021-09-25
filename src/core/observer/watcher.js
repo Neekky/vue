@@ -54,6 +54,8 @@ export default class Watcher {
     if (isRenderWatcher) {
       vm._watcher = this
     }
+
+    // 这里存储所有的watcher：Computed Watcher、用户Watcher（侦听器）、渲染Watcher
     vm._watchers.push(this)
     // options
     if (options) {
@@ -61,6 +63,8 @@ export default class Watcher {
       this.user = !!options.user
       this.lazy = !!options.lazy
       this.sync = !!options.sync
+
+      // 渲染watcher只有一个before
       this.before = options.before
     } else {
       this.deep = this.user = this.lazy = this.sync = false
@@ -78,6 +82,7 @@ export default class Watcher {
       : ''
     // parse expression for getter
     if (typeof expOrFn === 'function') {
+      // 如果是函数则直接记录给getter
       this.getter = expOrFn
     } else {
       this.getter = parsePath(expOrFn)
@@ -116,10 +121,15 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
+      // 执行清理工作
       if (this.deep) {
         traverse(value)
       }
+
+      // 当前watcher执行完毕，从栈里弹出
       popTarget()
+
+      // 会将Watcher从Dep的Subs数组中移除，并且会将watcher中记录的deps移除
       this.cleanupDeps()
     }
     return value
@@ -170,12 +180,14 @@ export default class Watcher {
    * Will be called when a dependency changes.
    */
   update () {
+    // 渲染watcher lazy、sync都为false
     /* istanbul ignore else */
     if (this.lazy) {
       this.dirty = true
     } else if (this.sync) {
       this.run()
     } else {
+      // 渲染watcher会执行这个
       queueWatcher(this)
     }
   }
@@ -186,6 +198,7 @@ export default class Watcher {
    */
   run () {
     if (this.active) {
+      // 对于渲染watcher，返回的是undefined。这里主要是针对用户定义的watcher
       const value = this.get()
       if (
         value !== this.value ||
@@ -200,8 +213,10 @@ export default class Watcher {
         this.value = value
         if (this.user) {
           const info = `callback for watcher "${this.expression}"`
+          // 如果是用户watcher，会套一层错误处理函数
           invokeWithErrorHandling(this.cb, this.vm, [value, oldValue], this.vm, info)
         } else {
+          // 渲染watcher的cb是一个noop
           this.cb.call(this.vm, value, oldValue)
         }
       }
