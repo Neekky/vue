@@ -190,11 +190,14 @@ export function defineReactive (
       // 下面部分为收集依赖
       // 如果存在当前依赖目标，即 watcher 对象，则建立依赖
       if (Dep.target) {
+        // 为该属性收集依赖
         dep.depend()
         if (childOb) {
           // 这里的dep是为当前的这个子对象收集依赖，当子对象发生添加或删除操作时，就可以发送通知
           childOb.dep.depend()
           if (Array.isArray(value)) {
+            // 如果该属性为数组，则会寻找数组中为“对象”的元素，判断其有没有__ob__（observer对象）
+            // 如果有的话，则将当前的watcher添加到其dep中去，当数据变化时，通知它改变
             dependArray(value)
           }
         }
