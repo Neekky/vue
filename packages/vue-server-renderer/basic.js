@@ -982,13 +982,15 @@
 
   /*  */
 
+  // 初始为0
   var uid = 0;
 
   /**
    * A dep is an observable that can have multiple
    * directives subscribing to it.
    */
-  var Dep = function Dep () {
+  var Dep = function Dep() {
+    // 每创建一个dep，都会使id++
     this.id = uid++;
     this.subs = [];
   };
@@ -1001,8 +1003,11 @@
     remove(this.subs, sub);
   };
 
+  // 将观察对象和watcher建立依赖
   Dep.prototype.depend = function depend () {
     if (Dep.target) {
+      // 如果 target 存在，则把 dep 对象添加到 watcher 的依赖中
+      // 此时的this指向的是dep实例？没错，因为方法是dep实例所调用的。
       Dep.target.addDep(this);
     }
   };
@@ -1018,15 +1023,21 @@
   // The current target watcher being evaluated.
   // This is globally unique because only one watcher
   // can be evaluated at a time.
+  // Dep.target 用来存放目前正在使用的watcher
+  // 全局唯一，并且一次也只能有一个watcher被使用
   Dep.target = null;
   var targetStack = [];
 
-  function pushTarget (target) {
+  // 入栈并将当前 watcher 赋值给 Dep.target
+  // 父子组件嵌套的时候先把父组件对应的 watcher 入栈，
+  // 再去处理子组件的 watcher，子组件的处理完毕后，再把父组件对应的 watcher 出栈，继续操作
+  function pushTarget(target) {
+    // 将当前target（watcher实例）入栈，并将当前target（watcher实例）赋值给target
     targetStack.push(target);
     Dep.target = target;
   }
 
-  function popTarget () {
+  function popTarget() {
     targetStack.pop();
     Dep.target = targetStack[targetStack.length - 1];
   }
@@ -1037,8 +1048,11 @@
    */
 
   var arrayProto = Array.prototype;
+
+  // 使用数组的原型创建一个新的对象
   var arrayMethods = Object.create(arrayProto);
 
+  // 修改数组元素的方法，它们有共同点，都会修改原数组，在数组发生变化时调用notify方法，去发送通知，通知watcher
   var methodsToPatch = [
     'push',
     'pop',
@@ -1054,25 +1068,42 @@
    */
   methodsToPatch.forEach(function (method) {
     // cache original method
+    // 保存数组原方法
     var original = arrayProto[method];
+
+    // 调用 Object.defineProperty() 重新定义修改数组的方法
     def(arrayMethods, method, function mutator () {
       var args = [], len = arguments.length;
       while ( len-- ) args[ len ] = arguments[ len ];
 
+
+      // 执行数组的原始方法，获取结果
       var result = original.apply(this, args);
+
+      // 获取数组对象的 ob 对象
       var ob = this.__ob__;
+
+      // 用来处理数组中新增的元素。
       var inserted;
       switch (method) {
+
+        // 传入的参数就是要新增的元素
         case 'push':
         case 'unshift':
           inserted = args;
           break
+
+        // splice方法第3个参数，是新增的元素，存储到splice里面来
         case 'splice':
           inserted = args.slice(2);
           break
       }
+
+      // 对插入的新元素，重新遍历数组元素设置为响应式数据
       if (inserted) { ob.observeArray(inserted); }
       // notify change
+
+      // 调用了修改数组的方法，调用数组的ob对象发送通知
       ob.dep.notify();
       return result
     });
@@ -1101,16 +1132,24 @@
   var Observer = function Observer (value) {
     this.value = value;
     this.dep = new Dep();
+    // 初始化实例的vmCount为0
     this.vmCount = 0;
+    // 将实例挂载到对象的__ob__属性
     def(value, '__ob__', this);
+
+    // 对数组做额外的响应式处理
     if (Array.isArray(value)) {
+      // 判断当前浏览器是否支持__proto__属性，处理兼容性问题
       if (hasProto) {
         protoAugment(value, arrayMethods);
       } else {
+        // 直接将方法定义在数组对象上
         copyAugment(value, arrayMethods, arrayKeys);
       }
+      // 为数组中的每一个对象创建一个observer实例，方法内部会判断成员是否是对象
       this.observeArray(value);
     } else {
+      // 遍历对象中的每一个属性，转换成setter/getter
       this.walk(value);
     }
   };
@@ -1121,7 +1160,9 @@
    * value type is Object.
    */
   Observer.prototype.walk = function walk (obj) {
+    // 获取观察对象的每一个属性
     var keys = Object.keys(obj);
+      
     for (var i = 0; i < keys.length; i++) {
       defineReactive$$1(obj, keys[i]);
     }
@@ -1129,6 +1170,7 @@
 
   /**
    * Observe a list of Array items.
+   * 对数组做响应式处理
    */
   Observer.prototype.observeArray = function observeArray (items) {
     for (var i = 0, l = items.length; i < l; i++) {
@@ -1142,6 +1184,7 @@
    * Augment a target Object or Array by intercepting
    * the prototype chain using __proto__
    */
+  // 重新设置数组的原型属性
   function protoAugment (target, src) {
     /* eslint-disable no-proto */
     target.__proto__ = src;
@@ -1189,6 +1232,11 @@
 
   /**
    * Define a reactive property on an Object.
+   * 为一个对象定义一个响应式属性
+   * 相较于我们之前自己实现的多了些处理，比如收集依赖、数据变化时发送通知
+   * 
+   * shallow：浅的意思，如果为ture，则只监听对象第一层属性；如果为false，则是深度监听，
+   * 当值为对象时还要深度监听对象中每一个值得变化。
    */
   function defineReactive$$1 (
     obj,
@@ -1197,39 +1245,55 @@
     customSetter,
     shallow
   ) {
+    // 创建依赖对象实例，负责为当前key属性收集依赖，也就是所有watcher
+    // 它和observer的dep不一样
     var dep = new Dep();
 
+    // 获取 obj 的属性描述符对象
     var property = Object.getOwnPropertyDescriptor(obj, key);
     if (property && property.configurable === false) {
       return
     }
 
     // cater for pre-defined getter/setters
+    // 缓存用户可能定义的getter、setter，对其进行包装
     var getter = property && property.get;
     var setter = property && property.set;
     if ((!getter || setter) && arguments.length === 2) {
       val = obj[key];
     }
 
+    // 判断是否递归观察子对象，并将子对象属性都转换成getter/setter，返回子观察对象
     var childOb = !shallow && observe(val);
     Object.defineProperty(obj, key, {
       enumerable: true,
       configurable: true,
       get: function reactiveGetter () {
+        // 如果用户预定义的getter存在，则value等于getter调用后的返回值
+        // 否则直接赋予属性值
         var value = getter ? getter.call(obj) : val;
+
+        // 下面部分为收集依赖
+        // 如果存在当前依赖目标，即 watcher 对象，则建立依赖
         if (Dep.target) {
           dep.depend();
           if (childOb) {
+            // 这里的dep是为当前的这个子对象收集依赖，当子对象发生添加或删除操作时，就可以发送通知
             childOb.dep.depend();
             if (Array.isArray(value)) {
               dependArray(value);
             }
           }
         }
+        // 返回属性值
         return value
       },
+
       set: function reactiveSetter (newVal) {
+        // 如果预定义的 getter 存在，则 value 等于 getter 调用返回的值
+        // 否则直接赋予属性值
         var value = getter ? getter.call(obj) : val;
+        // 如果新值等于旧值，或者存在NaN情况时，就直接终止
         /* eslint-disable no-self-compare */
         if (newVal === value || (newVal !== newVal && value !== value)) {
           return
@@ -1238,14 +1302,22 @@
         if (customSetter) {
           customSetter();
         }
+
+        // 如果没有setter则直接返回 
         // #7981: for accessor properties without setter
         if (getter && !setter) { return }
+        // 如果setter存在，则调用赋值
         if (setter) {
           setter.call(obj, newVal);
         } else {
+          // 如果setter、getter都不存在，直接把新值赋给旧值
           val = newVal;
         }
+
+        // 如果非浅层监听，且新值为对象，继续递归观察子对象，并将ob重新赋值。
         childOb = !shallow && observe(newVal);
+
+        // 派发更新，发布通知
         dep.notify();
       }
     });

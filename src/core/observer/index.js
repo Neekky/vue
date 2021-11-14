@@ -243,21 +243,31 @@ export function defineReactive (
  * already exist.
  */
 export function set (target: Array<any> | Object, key: any, val: any): any {
+  // 判断target是否未定义，是否为原始值
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
   ) {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
+  // 如果target是数组，则判断索引是否为有效的索引
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key)
+    // 通过splice方法对key位置的元素进行替换
+    // splice 在 array.js 进行了响应化处理，有更新能通知视图变化
+    // 这里最终会调用target上ob对象的dep对象的notify方法
     target.splice(key, 1, val)
     return val
   }
+
+  // 如果key在对象上已经存在，且不在原型上(防止用户赋值原型上的属性)，则直接进行赋值
   if (key in target && !(key in Object.prototype)) {
     target[key] = val
     return val
   }
+
+  // 如果key在target上不存在，则继续执行，获取ob对象
   const ob = (target: any).__ob__
+  // 如果 target 是Vue实例，或者为$data，则直接返回。这里$data的vmCount为1，其它的都为0，可在源码中观察到这点
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -265,11 +275,16 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     )
     return val
   }
+
+  // 如果不存在ob对象，则target不是响应式对象，则直接赋值。有什么情况会不存在ob对象呀
   if (!ob) {
     target[key] = val
     return val
   }
+
+  // 如果有ob对象，则将key设置为响应式属性
   defineReactive(ob.value, key, val)
+  // 并且发送通知
   ob.dep.notify()
   return val
 }
@@ -312,8 +327,10 @@ export function del (target: Array<any> | Object, key: any) {
 function dependArray (value: Array<any>) {
   for (let e, i = 0, l = value.length; i < l; i++) {
     e = value[i]
+    // 判断元素是否为可观察对象，如果是则调用收集依赖方法
     e && e.__ob__ && e.__ob__.dep.depend()
     if (Array.isArray(e)) {
+      // 如果元素为数组，则递归调用该方法
       dependArray(e)
     }
   }

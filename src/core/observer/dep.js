@@ -41,6 +41,8 @@ export default class Dep {
 
   notify() {
     // stabilize the subscriber list first
+    // 在处理watcher对象的过程中，可能会对this.subs数组中增加新的watcher对象，
+    // 在执行过程新增的watcher对象，我们是不做处理的，所以这里要用slice缓存一份
     const subs = this.subs.slice();
     if (process.env.NODE_ENV !== "production" && !config.async) {
       // subs aren't sorted in scheduler if not running async

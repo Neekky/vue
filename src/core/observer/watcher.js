@@ -85,7 +85,8 @@ export default class Watcher {
       // 如果是函数则直接记录给getter
       this.getter = expOrFn
     } else {
-      this.getter = parsePath(expOrFn)
+      // 如果为字符串，则是创建侦听器时传递的内容，例如 watch: {'person.name': function...}
+      this.getter = parsePath(expOrFn) // parsePath 的作用是：parsePath(’person.name') 返回一个函数获取 person.name 的值
       if (!this.getter) {
         this.getter = noop
         process.env.NODE_ENV !== 'production' && warn(
@@ -120,7 +121,7 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
-      // 执行清理工作
+      // 执行清理工作，当前是否是深度监听，对象改变后，如果其之下有属性是对象，则会继续监听之下的属性变化
       if (this.deep) {
         traverse(value)
       }
@@ -195,6 +196,7 @@ export default class Watcher {
    * Will be called by the scheduler.
    */
   run () {
+    // 判断该watcher 是否为存活状态
     if (this.active) {
       // 对于渲染watcher，返回的是undefined。这里主要是针对用户定义的watcher
       const value = this.get()

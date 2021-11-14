@@ -26,6 +26,8 @@ let index = 0
  * Reset the scheduler's state.
  */
 function resetSchedulerState () {
+  // 在一次更新执行完后，会重置index、队列长度，还会清空has对象
+  // 准备下一次的更新
   index = queue.length = activatedChildren.length = 0
   has = {}
   if (process.env.NODE_ENV !== 'production') {
@@ -91,13 +93,14 @@ function flushSchedulerQueue () {
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
+  // 不要缓存 queue 的length，因为在运行过程中，可能会push入新的watcher，这印证了我的动态加入的推断。
   for (index = 0; index < queue.length; index++) {
     watcher = queue[index]
     if (watcher.before) {
       watcher.before()
     }
     id = watcher.id
-    // 将该ID置为null，方便下次运行
+    // 该id已经被处理了，所以置为null，不然下次相同id不会再被执行
     has[id] = null
     watcher.run()
     // in dev build, check and stop circular updates.
@@ -124,8 +127,8 @@ function flushSchedulerQueue () {
   resetSchedulerState()
 
   // call component updated and activated hooks
-  callActivatedHooks(activatedQueue)
-  callUpdatedHooks(updatedQueue)
+  callActivatedHooks(activatedQueue) // 触发Activated钩子函数
+  callUpdatedHooks(updatedQueue) // 触发Updated钩子函数
 
   // devtool hook
   /* istanbul ignore if */
@@ -184,7 +187,7 @@ export function queueWatcher (watcher: Watcher) {
       // if already past its id, it will be run next immediately.
       let i = queue.length - 1
       // 获取数组长度
-
+      // 通过这个index，可以看出这个queue是个动态插入的呀
       while (i > index && queue[i].id > watcher.id) {
         i--
       }
