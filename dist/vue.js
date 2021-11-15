@@ -773,6 +773,7 @@
   function popTarget() {
     targetStack.pop();
     Dep.target = targetStack[targetStack.length - 1];
+    console.log(Dep.target, "Dep.target2222222");
   }
 
   /*  */
@@ -4751,6 +4752,8 @@
   /**
    * Depend on all deps collected by this watcher.
    */
+  // 多对多的关系，watcher也可以订阅多个dep，在这里会遍历deps中所有dep，
+  // 将本watcher实例通过Dep.target记录到，对应响应式数据的 dep 的 subs 数组中
   Watcher.prototype.depend = function depend () {
     var i = this.deps.length;
     while (i--) {

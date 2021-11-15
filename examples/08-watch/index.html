@@ -10,6 +10,7 @@
     {{ reversedMessage }}
     <hr>
     {{ user.fullName }}
+    {{test}}
   </div>
 
   <script src="../../dist/vue.js"></script>
@@ -22,7 +23,8 @@
           firstName: '诸葛',
           lastName: '亮',
           fullName: ''
-        }
+        },
+        test: 123123
       },
       computed: {
         reversedMessage: function () {
