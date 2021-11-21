@@ -202,6 +202,8 @@ export function queueWatcher (watcher: Watcher) {
         flushSchedulerQueue()
         return
       }
+
+      // 使用nextTick，以异步的方式去执行
       nextTick(flushSchedulerQueue)
     }
   }

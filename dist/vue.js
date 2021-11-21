@@ -773,7 +773,6 @@
   function popTarget() {
     targetStack.pop();
     Dep.target = targetStack[targetStack.length - 1];
-    console.log(Dep.target, "Dep.target2222222");
   }
 
   /*  */
@@ -2018,6 +2017,7 @@
   var pending = false;
 
   function flushCallbacks () {
+    console.log(callbacks.slice(0), "查看callbacks");
     pending = false;
     var copies = callbacks.slice(0);
     callbacks.length = 0;
@@ -2093,6 +2093,7 @@
 
   function nextTick (cb, ctx) {
     var _resolve;
+    // 把 cb 加上异常处理存入 callbacks 数组中
     callbacks.push(function () {
       if (cb) {
         try {
@@ -3467,7 +3468,7 @@
 
   // wrapper function for providing a more flexible interface
   // without getting yelled at by flow
-  function createElement (
+  function createElement(
     context,
     tag,
     data,
@@ -3481,12 +3482,13 @@
       data = undefined;
     }
     if (isTrue(alwaysNormalize)) {
+      // 这个参数会是用来处理children这个参数
       normalizationType = ALWAYS_NORMALIZE;
     }
-    return _createElement(context, tag, data, children, normalizationType)
+    return _createElement(context, tag, data, children, normalizationType);
   }
 
-  function _createElement (
+  function _createElement(
     context,
     tag,
     data,
@@ -3495,11 +3497,12 @@
   ) {
     if (isDef(data) && isDef((data).__ob__)) {
       warn(
-        "Avoid using observed data object as vnode data: " + (JSON.stringify(data)) + "\n" +
-        'Always create fresh vnode data objects in each render!',
-        context
-      );
-      return createEmptyVNode()
+          "Avoid using observed data object as vnode data: " + (JSON.stringify(
+            data
+          )) + "\n" + "Always create fresh vnode data objects in each render!",
+          context
+        );
+      return createEmptyVNode();
     }
     // object syntax in v-bind
     if (isDef(data) && isDef(data.is)) {
@@ -3507,78 +3510,99 @@
     }
     if (!tag) {
       // in case of component :is set to falsy value
-      return createEmptyVNode()
+      return createEmptyVNode();
     }
     // warn against non-primitive key
-    if (isDef(data) && isDef(data.key) && !isPrimitive(data.key)
+    if (
+      isDef(data) &&
+      isDef(data.key) &&
+      !isPrimitive(data.key)
     ) {
       {
         warn(
-          'Avoid using non-primitive value as key, ' +
-          'use string/number value instead.',
+          "Avoid using non-primitive value as key, " +
+            "use string/number value instead.",
           context
         );
       }
     }
+
     // support single function children as default scoped slot
-    if (Array.isArray(children) &&
-      typeof children[0] === 'function'
-    ) {
+    if (Array.isArray(children) && typeof children[0] === "function") {
       data = data || {};
       data.scopedSlots = { default: children[0] };
       children.length = 0;
     }
+    // 如果当前为用户传递的render函数
     if (normalizationType === ALWAYS_NORMALIZE) {
+      // 使用normalizeChildren函数做处理，它最终会返回一个一维数组，方便后续的处理。
+      // 这里我觉得老师说少了，最终是循环遍历children数组，让所有的子节点最终都生成为文本节点。
       children = normalizeChildren(children);
     } else if (normalizationType === SIMPLE_NORMALIZE) {
+      // Vue传递的render函数
       children = simpleNormalizeChildren(children);
     }
+
     var vnode, ns;
-    if (typeof tag === 'string') {
+
+    if (typeof tag === "string") {
       var Ctor;
       ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag);
+      // 是否是html的保留标签
+
       if (config.isReservedTag(tag)) {
         // platform built-in elements
-        if (isDef(data) && isDef(data.nativeOn) && data.tag !== 'component') {
+        if (
+          isDef(data) &&
+          isDef(data.nativeOn) &&
+          data.tag !== "component"
+        ) {
           warn(
             ("The .native modifier for v-on is only valid on components but it was used on <" + tag + ">."),
             context
           );
         }
         vnode = new VNode(
-          config.parsePlatformTagName(tag), data, children,
-          undefined, undefined, context
+          config.parsePlatformTagName(tag),
+          data,
+          children,
+          undefined,
+          undefined,
+          context
         );
-      } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
+      } else if (
+        // 判断是否为自定义组件
+        (!data || !data.pre) &&
+        isDef((Ctor = resolveAsset(context.$options, "components", tag)))
+      ) {
+        // 此处为查找自定义组件的构造函数声明
+        // 根据ctor 创建组件的VNode
         // component
         vnode = createComponent(Ctor, data, context, children, tag);
       } else {
         // unknown or unlisted namespaced elements
         // check at runtime because it may get assigned a namespace when its
         // parent normalizes children
-        vnode = new VNode(
-          tag, data, children,
-          undefined, undefined, context
-        );
+        vnode = new VNode(tag, data, children, undefined, undefined, context);
       }
     } else {
       // direct component options / constructor
       vnode = createComponent(tag, data, context, children);
     }
     if (Array.isArray(vnode)) {
-      return vnode
+      return vnode;
     } else if (isDef(vnode)) {
       if (isDef(ns)) { applyNS(vnode, ns); }
       if (isDef(data)) { registerDeepBindings(data); }
-      return vnode
+      return vnode;
     } else {
-      return createEmptyVNode()
+      return createEmptyVNode();
     }
   }
 
-  function applyNS (vnode, ns, force) {
+  function applyNS(vnode, ns, force) {
     vnode.ns = ns;
-    if (vnode.tag === 'foreignObject') {
+    if (vnode.tag === "foreignObject") {
       // use default namespace inside foreignObject
       ns = undefined;
       force = true;
@@ -3586,8 +3610,10 @@
     if (isDef(vnode.children)) {
       for (var i = 0, l = vnode.children.length; i < l; i++) {
         var child = vnode.children[i];
-        if (isDef(child.tag) && (
-          isUndef(child.ns) || (isTrue(force) && child.tag !== 'svg'))) {
+        if (
+          isDef(child.tag) &&
+          (isUndef(child.ns) || (isTrue(force) && child.tag !== "svg"))
+        ) {
           applyNS(child, ns, force);
         }
       }
@@ -3597,7 +3623,7 @@
   // ref #5318
   // necessary to ensure parent re-render when deep bindings like :style and
   // :class are used on slot nodes
-  function registerDeepBindings (data) {
+  function registerDeepBindings(data) {
     if (isObject(data.style)) {
       traverse(data.style);
     }
@@ -3621,10 +3647,13 @@
     // args order: tag, data, children, normalizationType, alwaysNormalize
     // internal version is used by render functions compiled from templates
     // 对编译生成的 render 进行渲染的方法，当Vue将模板编译成render函数时，会调用这个_c函数
+    // 当是由模板编译生成render函数的时候，调用的是该函数
     vm._c = function (a, b, c, d) { return createElement(vm, a, b, c, d, false); };
+
     // normalization is always applied for the public version, used in
     // user-written render functions.
     // 对手写 render 函数进行渲染的方法，createElement函数就是h函数，将虚拟DOM转换成真实DOM
+    // 当 render 函数是由用户传递时，会调用这个函数
     vm.$createElement = function (a, b, c, d) { return createElement(vm, a, b, c, d, true); };
 
     // $attrs & $listeners are exposed for easier HOC creation.
@@ -4059,6 +4088,7 @@
     Vue.prototype._update = function (vnode, hydrating) {
       var vm = this;
       var prevEl = vm.$el;
+      // _vnode记录的是之前处理过的vnode对象
       var prevVnode = vm._vnode;
       var restoreActiveInstance = setActiveInstance(vm);
       vm._vnode = vnode;
@@ -4066,6 +4096,7 @@
       // based on the rendering backend used.
       if (!prevVnode) {
         // initial render
+        // 初始化渲染时，没有老vnode，这里直接和el根节点作对比
         vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */);
       } else {
         // updates
@@ -4544,6 +4575,8 @@
           flushSchedulerQueue();
           return
         }
+
+        // 使用nextTick，以异步的方式去执行
         nextTick(flushSchedulerQueue);
       }
     }
@@ -4560,7 +4593,7 @@
    * and fires callback when the expression value changes.
    * This is used for both the $watch() api and directives.
    */
-  var Watcher = function Watcher (
+  var Watcher = function Watcher(
     vm,
     expOrFn,
     cb,
@@ -4594,9 +4627,10 @@
     this.newDeps = [];
     this.depIds = new _Set();
     this.newDepIds = new _Set();
-    this.expression = expOrFn.toString();
+    this.expression =
+      expOrFn.toString();
     // parse expression for getter
-    if (typeof expOrFn === 'function') {
+    if (typeof expOrFn === "function") {
       // 如果是函数则直接记录给getter
       this.getter = expOrFn;
     } else {
@@ -4605,16 +4639,16 @@
       if (!this.getter) {
         this.getter = noop;
         warn(
-          "Failed watching path: \"" + expOrFn + "\" " +
-          'Watcher only accepts simple dot-delimited paths. ' +
-          'For full control, use a function instead.',
-          vm
-        );
+            "Failed watching path: \"" + expOrFn + "\" " +
+              "Watcher only accepts simple dot-delimited paths. " +
+              "For full control, use a function instead.",
+            vm
+          );
       }
     }
-    this.value = this.lazy
-      ? undefined
-      : this.get();
+
+    // 计算属性为lazy，因为计算属性是在模板中被调用的，它是在render过程中，调用对应计算属性的方法的。
+    this.value = this.lazy ? undefined : this.get();
   };
 
   /**
@@ -4629,10 +4663,11 @@
       console.log(this.getter, "this.getter");
       value = this.getter.call(vm, vm);
     } catch (e) {
+      // 获取值异常时，如果是用户定义的watcher，则会给出报错
       if (this.user) {
         handleError(e, vm, ("getter for watcher \"" + (this.expression) + "\""));
       } else {
-        throw e
+        throw e;
       }
     } finally {
       // "touch" every property so they are all tracked as
@@ -4648,7 +4683,7 @@
       // 会将Watcher从Dep的Subs数组中移除，并且会将watcher中记录的deps移除
       this.cleanupDeps();
     }
-    return value
+    return value;
   };
 
   /**
@@ -4728,10 +4763,17 @@
         // set new value
         var oldValue = this.value;
         this.value = value;
+
+        // user属性只是为了包装一层trycatch，如果是用户watcher，会套一层错误处理函数
         if (this.user) {
           var info = "callback for watcher \"" + (this.expression) + "\"";
-          // 如果是用户watcher，会套一层错误处理函数
-          invokeWithErrorHandling(this.cb, this.vm, [value, oldValue], this.vm, info);
+          invokeWithErrorHandling(
+            this.cb,
+            this.vm,
+            [value, oldValue],
+            this.vm,
+            info
+          );
         } else {
           // 渲染watcher的cb是一个noop
           this.cb.call(this.vm, value, oldValue);
@@ -5138,6 +5180,7 @@
       if (options.immediate) {
         var info = "callback for immediate watcher \"" + (watcher.expression) + "\"";
         pushTarget();
+        // 这里只传一个新值，因为首次调用，本来就没老值
         invokeWithErrorHandling(cb, vm, [watcher.value], vm, info);
         popTarget();
       }
@@ -6156,6 +6199,7 @@
 
   function createPatchFunction (backend) {
     var i, j;
+    // 和snabbdom一样，存储的是各个模块定义的钩子函数
     var cbs = {};
 
     var modules = backend.modules;
@@ -6767,6 +6811,8 @@
       }
     }
 
+    // 函数柯里化，让一个函数返回一个函数
+    
     return function patch (oldVnode, vnode, hydrating, removeOnly) {
       if (isUndef(vnode)) {
         if (isDef(oldVnode)) { invokeDestroyHook(oldVnode); }
@@ -8758,6 +8804,7 @@
   // built-in modules have been applied.
   var modules = platformModules.concat(baseModules);
 
+  // patch函数，由该方法生成，说明它也是一个高阶函数，是一个柯里化的函数
   var patch = createPatchFunction({ nodeOps: nodeOps, modules: modules });
 
   /**

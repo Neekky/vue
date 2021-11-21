@@ -69,6 +69,7 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
 
 export function createPatchFunction (backend) {
   let i, j
+  // 和snabbdom一样，存储的是各个模块定义的钩子函数
   const cbs = {}
 
   const { modules, nodeOps } = backend
@@ -697,6 +698,8 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 函数柯里化，让一个函数返回一个函数
+  
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)

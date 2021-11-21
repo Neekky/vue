@@ -29,10 +29,13 @@ export function initRender (vm: Component) {
   // args order: tag, data, children, normalizationType, alwaysNormalize
   // internal version is used by render functions compiled from templates
   // 对编译生成的 render 进行渲染的方法，当Vue将模板编译成render函数时，会调用这个_c函数
+  // 当是由模板编译生成render函数的时候，调用的是该函数
   vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false)
+
   // normalization is always applied for the public version, used in
   // user-written render functions.
   // 对手写 render 函数进行渲染的方法，createElement函数就是h函数，将虚拟DOM转换成真实DOM
+  // 当 render 函数是由用户传递时，会调用这个函数
   vm.$createElement = (a, b, c, d) => createElement(vm, a, b, c, d, true)
 
   // $attrs & $listeners are exposed for easier HOC creation.

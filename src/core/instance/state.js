@@ -386,6 +386,7 @@ export function stateMixin (Vue: Class<Component>) {
     if (options.immediate) {
       const info = `callback for immediate watcher "${watcher.expression}"`
       pushTarget()
+      // 这里只传一个新值，因为首次调用，本来就没老值
       invokeWithErrorHandling(cb, vm, [watcher.value], vm, info)
       popTarget()
     }

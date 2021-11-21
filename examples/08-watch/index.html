@@ -32,14 +32,15 @@
         }
       },
       watch: {
-        // 'user.firstName': function (newValue, oldValue) {
-        //   this.user.fullName = this.user.firstName + ' ' + this.user.lastName
-        // },
+        'user.firstName': function (newValue, oldValue) {
+          this.user.fullName = this.user.firstName + ' ' + this.user.lastName
+        },
         // 'user.lastName': function (newValue, oldValue) {
         //   this.user.fullName = this.user.firstName + ' ' + this.user.lastName
         // },
         'user': {
           handler: function (newValue, oldValue) {
+            console.log(newValue, oldValue, "新老值");
             this.user.fullName = this.user.firstName + ' ' + this.user.lastName
           },
           deep: true,
