@@ -6158,50 +6158,55 @@
    * of making flow understand it is not worth it.
    */
 
-  var emptyNode = new VNode('', {}, []);
+  var emptyNode = new VNode("", {}, []);
 
-  var hooks = ['create', 'activate', 'update', 'remove', 'destroy'];
+  // 和snabbdom钩子函数相似，这里为Vue独有的钩子函数
+  var hooks = ["create", "activate", "update", "remove", "destroy"];
 
-  function sameVnode (a, b) {
+  function sameVnode(a, b) {
+    /**
+     * 相比于Snabbdom，相同点:
+     * 都比较了key，tag是否相同
+     * 不同点:
+     * 还判断了很多额外的东西
+     *
+     */
     return (
       a.key === b.key &&
-      a.asyncFactory === b.asyncFactory && (
-        (
-          a.tag === b.tag &&
-          a.isComment === b.isComment &&
-          isDef(a.data) === isDef(b.data) &&
-          sameInputType(a, b)
-        ) || (
-          isTrue(a.isAsyncPlaceholder) &&
-          isUndef(b.asyncFactory.error)
-        )
-      )
-    )
+      a.asyncFactory === b.asyncFactory &&
+      ((a.tag === b.tag &&
+        a.isComment === b.isComment &&
+        isDef(a.data) === isDef(b.data) &&
+        sameInputType(a, b)) ||
+        (isTrue(a.isAsyncPlaceholder) && isUndef(b.asyncFactory.error)))
+    );
   }
 
-  function sameInputType (a, b) {
-    if (a.tag !== 'input') { return true }
+  function sameInputType(a, b) {
+    if (a.tag !== "input") { return true; }
     var i;
-    var typeA = isDef(i = a.data) && isDef(i = i.attrs) && i.type;
-    var typeB = isDef(i = b.data) && isDef(i = i.attrs) && i.type;
-    return typeA === typeB || isTextInputType(typeA) && isTextInputType(typeB)
+    var typeA = isDef((i = a.data)) && isDef((i = i.attrs)) && i.type;
+    var typeB = isDef((i = b.data)) && isDef((i = i.attrs)) && i.type;
+    return typeA === typeB || (isTextInputType(typeA) && isTextInputType(typeB));
   }
 
-  function createKeyToOldIdx (children, beginIdx, endIdx) {
+  function createKeyToOldIdx(children, beginIdx, endIdx) {
     var i, key;
     var map = {};
     for (i = beginIdx; i <= endIdx; ++i) {
       key = children[i].key;
       if (isDef(key)) { map[key] = i; }
     }
-    return map
+    return map;
   }
 
-  function createPatchFunction (backend) {
+  function createPatchFunction(backend) {
     var i, j;
-    // 和snabbdom一样，存储的是各个模块定义的钩子函数
+    // callbacks, 和snabbdom一样，存储的是各个模块定义的钩子函数
     var cbs = {};
 
+    // modules 节点的属性/事件/样式的操作
+    // nodeOps 节点操作
     var modules = backend.modules;
     var nodeOps = backend.nodeOps;
 
@@ -6214,21 +6219,27 @@
       }
     }
 
-    function emptyNodeAt (elm) {
-      return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
+    function emptyNodeAt(elm) {
+      return new VNode(
+        nodeOps.tagName(elm).toLowerCase(),
+        {},
+        [],
+        undefined,
+        elm
+      );
     }
 
-    function createRmCb (childElm, listeners) {
-      function remove$$1 () {
+    function createRmCb(childElm, listeners) {
+      function remove$$1() {
         if (--remove$$1.listeners === 0) {
           removeNode(childElm);
         }
       }
       remove$$1.listeners = listeners;
-      return remove$$1
+      return remove$$1;
     }
 
-    function removeNode (el) {
+    function removeNode(el) {
       var parent = nodeOps.parentNode(el);
       // element may have already been removed due to v-html / v-text
       if (isDef(parent)) {
@@ -6236,7 +6247,7 @@
       }
     }
 
-    function isUnknownElement$$1 (vnode, inVPre) {
+    function isUnknownElement$$1(vnode, inVPre) {
       return (
         !inVPre &&
         !vnode.ns &&
@@ -6245,16 +6256,16 @@
           config.ignoredElements.some(function (ignore) {
             return isRegExp(ignore)
               ? ignore.test(vnode.tag)
-              : ignore === vnode.tag
+              : ignore === vnode.tag;
           })
         ) &&
         config.isUnknownElement(vnode.tag)
-      )
+      );
     }
 
     var creatingElmInVPre = 0;
 
-    function createElm (
+    function createElm(
       vnode,
       insertedVnodeQueue,
       parentElm,
@@ -6263,45 +6274,59 @@
       ownerArray,
       index
     ) {
+      // 先判断vnode中是否有elm属性，如果有，则说明该vnode层级被渲染过
+      // ownerArray代表该vnode是否有子节点
       if (isDef(vnode.elm) && isDef(ownerArray)) {
         // This vnode was used in a previous render!
         // now it's used as a new node, overwriting its elm would cause
         // potential patch errors down the road when it's used as an insertion
         // reference node. Instead, we clone the node on-demand before creating
         // associated DOM element for it.
+        // 如果有elm属性，并且有子节点，则要克隆一份。
         vnode = ownerArray[index] = cloneVNode(vnode);
       }
 
       vnode.isRootInsert = !nested; // for transition enter check
+      // 处理组件情况
       if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
-        return
+        return;
       }
 
+      // 获取基本数据
       var data = vnode.data;
       var children = vnode.children;
       var tag = vnode.tag;
+
+      // 判断是否有标签
       if (isDef(tag)) {
         {
           if (data && data.pre) {
             creatingElmInVPre++;
           }
+          // 判断是否为未知标签
           if (isUnknownElement$$1(vnode, creatingElmInVPre)) {
             warn(
-              'Unknown custom element: <' + tag + '> - did you ' +
-              'register the component correctly? For recursive components, ' +
-              'make sure to provide the "name" option.',
+              "Unknown custom element: <" +
+                tag +
+                "> - did you " +
+                "register the component correctly? For recursive components, " +
+                'make sure to provide the "name" option.',
               vnode.context
             );
           }
         }
 
+        // 判断是否有命名空间，在此创建DOM元素
         vnode.elm = vnode.ns
-          ? nodeOps.createElementNS(vnode.ns, tag)
+          ? nodeOps.createElementNS(vnode.ns, tag) // 一般处理SVG情况
           : nodeOps.createElement(tag, vnode);
+
+        // 设置样式作用域
         setScope(vnode);
 
         /* istanbul ignore if */
         {
+          // 把VNode中的所有子元素转化成DOM对象
           createChildren(vnode, children, insertedVnodeQueue);
           if (isDef(data)) {
             invokeCreateHooks(vnode, insertedVnodeQueue);
@@ -6313,19 +6338,21 @@
           creatingElmInVPre--;
         }
       } else if (isTrue(vnode.isComment)) {
+        // 判断是否为注释节点
         vnode.elm = nodeOps.createComment(vnode.text);
         insert(parentElm, vnode.elm, refElm);
       } else {
+        // 最终就是文本节点
         vnode.elm = nodeOps.createTextNode(vnode.text);
         insert(parentElm, vnode.elm, refElm);
       }
     }
 
-    function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
+    function createComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
       var i = vnode.data;
       if (isDef(i)) {
         var isReactivated = isDef(vnode.componentInstance) && i.keepAlive;
-        if (isDef(i = i.hook) && isDef(i = i.init)) {
+        if (isDef((i = i.hook)) && isDef((i = i.init))) {
           i(vnode, false /* hydrating */);
         }
         // after calling the init hook, if the vnode is a child component
@@ -6338,14 +6365,17 @@
           if (isTrue(isReactivated)) {
             reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm);
           }
-          return true
+          return true;
         }
       }
     }
 
-    function initComponent (vnode, insertedVnodeQueue) {
+    function initComponent(vnode, insertedVnodeQueue) {
       if (isDef(vnode.data.pendingInsert)) {
-        insertedVnodeQueue.push.apply(insertedVnodeQueue, vnode.data.pendingInsert);
+        insertedVnodeQueue.push.apply(
+          insertedVnodeQueue,
+          vnode.data.pendingInsert
+        );
         vnode.data.pendingInsert = null;
       }
       vnode.elm = vnode.componentInstance.$el;
@@ -6361,7 +6391,7 @@
       }
     }
 
-    function reactivateComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
+    function reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
       var i;
       // hack for #4339: a reactivated component with inner transition
       // does not trigger because the inner node's created hooks are not called
@@ -6370,12 +6400,12 @@
       var innerNode = vnode;
       while (innerNode.componentInstance) {
         innerNode = innerNode.componentInstance._vnode;
-        if (isDef(i = innerNode.data) && isDef(i = i.transition)) {
+        if (isDef((i = innerNode.data)) && isDef((i = i.transition))) {
           for (i = 0; i < cbs.activate.length; ++i) {
             cbs.activate[i](emptyNode, innerNode);
           }
           insertedVnodeQueue.push(innerNode);
-          break
+          break;
         }
       }
       // unlike a newly created component,
@@ -6383,7 +6413,7 @@
       insert(parentElm, vnode.elm, refElm);
     }
 
-    function insert (parent, elm, ref$$1) {
+    function insert(parent, elm, ref$$1) {
       if (isDef(parent)) {
         if (isDef(ref$$1)) {
           if (nodeOps.parentNode(ref$$1) === parent) {
@@ -6395,27 +6425,38 @@
       }
     }
 
-    function createChildren (vnode, children, insertedVnodeQueue) {
+    function createChildren(vnode, children, insertedVnodeQueue) {
       if (Array.isArray(children)) {
         {
           checkDuplicateKeys(children);
         }
         for (var i = 0; i < children.length; ++i) {
-          createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i);
+          createElm(
+            children[i],
+            insertedVnodeQueue,
+            vnode.elm,
+            null,
+            true,
+            children,
+            i
+          );
         }
       } else if (isPrimitive(vnode.text)) {
-        nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)));
+        nodeOps.appendChild(
+          vnode.elm,
+          nodeOps.createTextNode(String(vnode.text))
+        );
       }
     }
 
-    function isPatchable (vnode) {
+    function isPatchable(vnode) {
       while (vnode.componentInstance) {
         vnode = vnode.componentInstance._vnode;
       }
-      return isDef(vnode.tag)
+      return isDef(vnode.tag);
     }
 
-    function invokeCreateHooks (vnode, insertedVnodeQueue) {
+    function invokeCreateHooks(vnode, insertedVnodeQueue) {
       for (var i$1 = 0; i$1 < cbs.create.length; ++i$1) {
         cbs.create[i$1](emptyNode, vnode);
       }
@@ -6429,64 +6470,81 @@
     // set scope id attribute for scoped CSS.
     // this is implemented as a special case to avoid the overhead
     // of going through the normal attribute patching process.
-    function setScope (vnode) {
+    function setScope(vnode) {
       var i;
-      if (isDef(i = vnode.fnScopeId)) {
+      if (isDef((i = vnode.fnScopeId))) {
         nodeOps.setStyleScope(vnode.elm, i);
       } else {
         var ancestor = vnode;
         while (ancestor) {
-          if (isDef(i = ancestor.context) && isDef(i = i.$options._scopeId)) {
+          if (isDef((i = ancestor.context)) && isDef((i = i.$options._scopeId))) {
             nodeOps.setStyleScope(vnode.elm, i);
           }
           ancestor = ancestor.parent;
         }
       }
       // for slot content they should also get the scopeId from the host instance.
-      if (isDef(i = activeInstance) &&
+      if (
+        isDef((i = activeInstance)) &&
         i !== vnode.context &&
         i !== vnode.fnContext &&
-        isDef(i = i.$options._scopeId)
+        isDef((i = i.$options._scopeId))
       ) {
         nodeOps.setStyleScope(vnode.elm, i);
       }
     }
 
-    function addVnodes (parentElm, refElm, vnodes, startIdx, endIdx, insertedVnodeQueue) {
+    function addVnodes(
+      parentElm,
+      refElm,
+      vnodes,
+      startIdx,
+      endIdx,
+      insertedVnodeQueue
+    ) {
       for (; startIdx <= endIdx; ++startIdx) {
-        createElm(vnodes[startIdx], insertedVnodeQueue, parentElm, refElm, false, vnodes, startIdx);
+        createElm(
+          vnodes[startIdx],
+          insertedVnodeQueue,
+          parentElm,
+          refElm,
+          false,
+          vnodes,
+          startIdx
+        );
       }
     }
 
-    function invokeDestroyHook (vnode) {
+    function invokeDestroyHook(vnode) {
       var i, j;
       var data = vnode.data;
       if (isDef(data)) {
-        if (isDef(i = data.hook) && isDef(i = i.destroy)) { i(vnode); }
+        if (isDef((i = data.hook)) && isDef((i = i.destroy))) { i(vnode); }
         for (i = 0; i < cbs.destroy.length; ++i) { cbs.destroy[i](vnode); }
       }
-      if (isDef(i = vnode.children)) {
+      if (isDef((i = vnode.children))) {
         for (j = 0; j < vnode.children.length; ++j) {
           invokeDestroyHook(vnode.children[j]);
         }
       }
     }
 
-    function removeVnodes (vnodes, startIdx, endIdx) {
+    function removeVnodes(vnodes, startIdx, endIdx) {
       for (; startIdx <= endIdx; ++startIdx) {
         var ch = vnodes[startIdx];
         if (isDef(ch)) {
           if (isDef(ch.tag)) {
             removeAndInvokeRemoveHook(ch);
             invokeDestroyHook(ch);
-          } else { // Text node
+          } else {
+            // Text node
             removeNode(ch.elm);
           }
         }
       }
     }
 
-    function removeAndInvokeRemoveHook (vnode, rm) {
+    function removeAndInvokeRemoveHook(vnode, rm) {
       if (isDef(rm) || isDef(vnode.data)) {
         var i;
         var listeners = cbs.remove.length + 1;
@@ -6499,13 +6557,17 @@
           rm = createRmCb(vnode.elm, listeners);
         }
         // recursively invoke hooks on child component root node
-        if (isDef(i = vnode.componentInstance) && isDef(i = i._vnode) && isDef(i.data)) {
+        if (
+          isDef((i = vnode.componentInstance)) &&
+          isDef((i = i._vnode)) &&
+          isDef(i.data)
+        ) {
           removeAndInvokeRemoveHook(i, rm);
         }
         for (i = 0; i < cbs.remove.length; ++i) {
           cbs.remove[i](vnode, rm);
         }
-        if (isDef(i = vnode.data.hook) && isDef(i = i.remove)) {
+        if (isDef((i = vnode.data.hook)) && isDef((i = i.remove))) {
           i(vnode, rm);
         } else {
           rm();
@@ -6515,7 +6577,15 @@
       }
     }
 
-    function updateChildren (parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
+    // diff 算法
+    // 更新新旧节点的子节点
+    function updateChildren(
+      parentElm,
+      oldCh,
+      newCh,
+      insertedVnodeQueue,
+      removeOnly
+    ) {
       var oldStartIdx = 0;
       var newStartIdx = 0;
       var oldEndIdx = oldCh.length - 1;
@@ -6534,46 +6604,109 @@
       {
         checkDuplicateKeys(newCh);
       }
-
+      
+      // diff 算法
+      // 当新节点和旧节点都没有遍历完成
       while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
         if (isUndef(oldStartVnode)) {
           oldStartVnode = oldCh[++oldStartIdx]; // Vnode has been moved left
         } else if (isUndef(oldEndVnode)) {
           oldEndVnode = oldCh[--oldEndIdx];
         } else if (sameVnode(oldStartVnode, newStartVnode)) {
-          patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, newCh, newStartIdx);
+          patchVnode(
+            oldStartVnode,
+            newStartVnode,
+            insertedVnodeQueue,
+            newCh,
+            newStartIdx
+          );
           oldStartVnode = oldCh[++oldStartIdx];
           newStartVnode = newCh[++newStartIdx];
         } else if (sameVnode(oldEndVnode, newEndVnode)) {
-          patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx);
+          patchVnode(
+            oldEndVnode,
+            newEndVnode,
+            insertedVnodeQueue,
+            newCh,
+            newEndIdx
+          );
           oldEndVnode = oldCh[--oldEndIdx];
           newEndVnode = newCh[--newEndIdx];
-        } else if (sameVnode(oldStartVnode, newEndVnode)) { // Vnode moved right
-          patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx);
-          canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm));
+        } else if (sameVnode(oldStartVnode, newEndVnode)) {
+          // Vnode moved right
+          patchVnode(
+            oldStartVnode,
+            newEndVnode,
+            insertedVnodeQueue,
+            newCh,
+            newEndIdx
+          );
+          canMove &&
+            nodeOps.insertBefore(
+              parentElm,
+              oldStartVnode.elm,
+              nodeOps.nextSibling(oldEndVnode.elm)
+            );
           oldStartVnode = oldCh[++oldStartIdx];
           newEndVnode = newCh[--newEndIdx];
-        } else if (sameVnode(oldEndVnode, newStartVnode)) { // Vnode moved left
-          patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue, newCh, newStartIdx);
-          canMove && nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm);
+        } else if (sameVnode(oldEndVnode, newStartVnode)) {
+          // Vnode moved left
+          patchVnode(
+            oldEndVnode,
+            newStartVnode,
+            insertedVnodeQueue,
+            newCh,
+            newStartIdx
+          );
+          canMove &&
+            nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm);
           oldEndVnode = oldCh[--oldEndIdx];
           newStartVnode = newCh[++newStartIdx];
         } else {
-          if (isUndef(oldKeyToIdx)) { oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx); }
+          if (isUndef(oldKeyToIdx))
+            { oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx); }
           idxInOld = isDef(newStartVnode.key)
             ? oldKeyToIdx[newStartVnode.key]
             : findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx);
-          if (isUndef(idxInOld)) { // New element
-            createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx);
+          if (isUndef(idxInOld)) {
+            // New element
+            createElm(
+              newStartVnode,
+              insertedVnodeQueue,
+              parentElm,
+              oldStartVnode.elm,
+              false,
+              newCh,
+              newStartIdx
+            );
           } else {
             vnodeToMove = oldCh[idxInOld];
             if (sameVnode(vnodeToMove, newStartVnode)) {
-              patchVnode(vnodeToMove, newStartVnode, insertedVnodeQueue, newCh, newStartIdx);
+              patchVnode(
+                vnodeToMove,
+                newStartVnode,
+                insertedVnodeQueue,
+                newCh,
+                newStartIdx
+              );
               oldCh[idxInOld] = undefined;
-              canMove && nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm);
+              canMove &&
+                nodeOps.insertBefore(
+                  parentElm,
+                  vnodeToMove.elm,
+                  oldStartVnode.elm
+                );
             } else {
               // same key but different element. treat as new element
-              createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx);
+              createElm(
+                newStartVnode,
+                insertedVnodeQueue,
+                parentElm,
+                oldStartVnode.elm,
+                false,
+                newCh,
+                newStartIdx
+              );
             }
           }
           newStartVnode = newCh[++newStartIdx];
@@ -6581,13 +6714,20 @@
       }
       if (oldStartIdx > oldEndIdx) {
         refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm;
-        addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue);
+        addVnodes(
+          parentElm,
+          refElm,
+          newCh,
+          newStartIdx,
+          newEndIdx,
+          insertedVnodeQueue
+        );
       } else if (newStartIdx > newEndIdx) {
         removeVnodes(oldCh, oldStartIdx, oldEndIdx);
       }
     }
 
-    function checkDuplicateKeys (children) {
+    function checkDuplicateKeys(children) {
       var seenKeys = {};
       for (var i = 0; i < children.length; i++) {
         var vnode = children[i];
@@ -6605,14 +6745,14 @@
       }
     }
 
-    function findIdxInOld (node, oldCh, start, end) {
+    function findIdxInOld(node, oldCh, start, end) {
       for (var i = start; i < end; i++) {
         var c = oldCh[i];
-        if (isDef(c) && sameVnode(node, c)) { return i }
+        if (isDef(c) && sameVnode(node, c)) { return i; }
       }
     }
 
-    function patchVnode (
+    function patchVnode(
       oldVnode,
       vnode,
       insertedVnodeQueue,
@@ -6621,7 +6761,7 @@
       removeOnly
     ) {
       if (oldVnode === vnode) {
-        return
+        return;
       }
 
       if (isDef(vnode.elm) && isDef(ownerArray)) {
@@ -6629,7 +6769,7 @@
         vnode = ownerArray[index] = cloneVNode(vnode);
       }
 
-      var elm = vnode.elm = oldVnode.elm;
+      var elm = (vnode.elm = oldVnode.elm);
 
       if (isTrue(oldVnode.isAsyncPlaceholder)) {
         if (isDef(vnode.asyncFactory.resolved)) {
@@ -6637,57 +6777,85 @@
         } else {
           vnode.isAsyncPlaceholder = true;
         }
-        return
+        return;
       }
 
       // reuse element for static trees.
       // note we only do this if the vnode is cloned -
       // if the new node is not cloned it means the render functions have been
       // reset by the hot-reload-api and we need to do a proper re-render.
-      if (isTrue(vnode.isStatic) &&
+      // 如果新旧 VNode 都是静态的，那么只需要替换componentInstance
+      if (
+        isTrue(vnode.isStatic) &&
         isTrue(oldVnode.isStatic) &&
         vnode.key === oldVnode.key &&
         (isTrue(vnode.isCloned) || isTrue(vnode.isOnce))
       ) {
         vnode.componentInstance = oldVnode.componentInstance;
-        return
+        return;
       }
 
       var i;
       var data = vnode.data;
-      if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
+      if (isDef(data) && isDef((i = data.hook)) && isDef((i = i.prepatch))) {
         i(oldVnode, vnode);
       }
 
       var oldCh = oldVnode.children;
       var ch = vnode.children;
+
       if (isDef(data) && isPatchable(vnode)) {
+        // 调用 cbs 中的钩子函数，操作节点的属性/样式/事件....
         for (i = 0; i < cbs.update.length; ++i) { cbs.update[i](oldVnode, vnode); }
-        if (isDef(i = data.hook) && isDef(i = i.update)) { i(oldVnode, vnode); }
+        // 用户的自定义钩子
+        if (isDef((i = data.hook)) && isDef((i = i.update))) { i(oldVnode, vnode); }
       }
+
+      // 新节点没有文本
       if (isUndef(vnode.text)) {
+
+        // 老节点和老节点都有有子节点
+        // 对子节点进行 diff 操作，调用 updateChildren
         if (isDef(oldCh) && isDef(ch)) {
-          if (oldCh !== ch) { updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly); }
+
+          if (oldCh !== ch)
+            { updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly); }
+            
         } else if (isDef(ch)) {
+          // 新vnode有子节点，老vnode没有子节点
           {
             checkDuplicateKeys(ch);
           }
-          if (isDef(oldVnode.text)) { nodeOps.setTextContent(elm, ''); }
+
+          // 先清空老节点 DOM 的文本内容，然后为当前 DOM 节点加入子节点
+          if (isDef(oldVnode.text)) { nodeOps.setTextContent(elm, ""); }
           addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue);
+
         } else if (isDef(oldCh)) {
+
+          // 老节点有子节点，新的没有子节点
+          // 直接删除老节点中的子节点
           removeVnodes(oldCh, 0, oldCh.length - 1);
+
         } else if (isDef(oldVnode.text)) {
-          nodeOps.setTextContent(elm, '');
+          // 老节点有文本，新节点没有文本
+          // 清空老节点的文本内容
+          nodeOps.setTextContent(elm, "");
         }
       } else if (oldVnode.text !== vnode.text) {
+        // 新老节点都有文本节点
+        // 修改文本
         nodeOps.setTextContent(elm, vnode.text);
       }
+
+      // 如果有用户定义的data，则判断执行对应钩子函数
       if (isDef(data)) {
-        if (isDef(i = data.hook) && isDef(i = i.postpatch)) { i(oldVnode, vnode); }
+        if (isDef((i = data.hook)) && isDef((i = i.postpatch)))
+          { i(oldVnode, vnode); }
       }
     }
 
-    function invokeInsertHook (vnode, queue, initial) {
+    function invokeInsertHook(vnode, queue, initial) {
       // delay insert hooks for component root nodes, invoke them after the
       // element is really inserted
       if (isTrue(initial) && isDef(vnode.parent)) {
@@ -6704,10 +6872,10 @@
     // are already rendered on the client or has no need for initialization
     // Note: style is excluded because it relies on initial clone for future
     // deep updates (#7063).
-    var isRenderedModule = makeMap('attrs,class,staticClass,staticStyle,key');
+    var isRenderedModule = makeMap("attrs,class,staticClass,staticStyle,key");
 
     // Note: this is a browser-only function so we can assume elms are DOM nodes.
-    function hydrate (elm, vnode, insertedVnodeQueue, inVPre) {
+    function hydrate(elm, vnode, insertedVnodeQueue, inVPre) {
       var i;
       var tag = vnode.tag;
       var data = vnode.data;
@@ -6717,20 +6885,21 @@
 
       if (isTrue(vnode.isComment) && isDef(vnode.asyncFactory)) {
         vnode.isAsyncPlaceholder = true;
-        return true
+        return true;
       }
       // assert node match
       {
         if (!assertNodeMatch(elm, vnode, inVPre)) {
-          return false
+          return false;
         }
       }
       if (isDef(data)) {
-        if (isDef(i = data.hook) && isDef(i = i.init)) { i(vnode, true /* hydrating */); }
-        if (isDef(i = vnode.componentInstance)) {
+        if (isDef((i = data.hook)) && isDef((i = i.init)))
+          { i(vnode, true /* hydrating */); }
+        if (isDef((i = vnode.componentInstance))) {
           // child component. it should have hydrated its own tree.
           initComponent(vnode, insertedVnodeQueue);
-          return true
+          return true;
         }
       }
       if (isDef(tag)) {
@@ -6740,27 +6909,35 @@
             createChildren(vnode, children, insertedVnodeQueue);
           } else {
             // v-html and domProps: innerHTML
-            if (isDef(i = data) && isDef(i = i.domProps) && isDef(i = i.innerHTML)) {
+            if (
+              isDef((i = data)) &&
+              isDef((i = i.domProps)) &&
+              isDef((i = i.innerHTML))
+            ) {
               if (i !== elm.innerHTML) {
                 /* istanbul ignore if */
-                if (typeof console !== 'undefined' &&
+                if (
+                  typeof console !== "undefined" &&
                   !hydrationBailed
                 ) {
                   hydrationBailed = true;
-                  console.warn('Parent: ', elm);
-                  console.warn('server innerHTML: ', i);
-                  console.warn('client innerHTML: ', elm.innerHTML);
+                  console.warn("Parent: ", elm);
+                  console.warn("server innerHTML: ", i);
+                  console.warn("client innerHTML: ", elm.innerHTML);
                 }
-                return false
+                return false;
               }
             } else {
               // iterate and compare children lists
               var childrenMatch = true;
               var childNode = elm.firstChild;
               for (var i$1 = 0; i$1 < children.length; i$1++) {
-                if (!childNode || !hydrate(childNode, children[i$1], insertedVnodeQueue, inVPre)) {
+                if (
+                  !childNode ||
+                  !hydrate(childNode, children[i$1], insertedVnodeQueue, inVPre)
+                ) {
                   childrenMatch = false;
-                  break
+                  break;
                 }
                 childNode = childNode.nextSibling;
               }
@@ -6768,14 +6945,19 @@
               // longer than the virtual children list.
               if (!childrenMatch || childNode) {
                 /* istanbul ignore if */
-                if (typeof console !== 'undefined' &&
+                if (
+                  typeof console !== "undefined" &&
                   !hydrationBailed
                 ) {
                   hydrationBailed = true;
-                  console.warn('Parent: ', elm);
-                  console.warn('Mismatching childNodes vs. VNodes: ', elm.childNodes, children);
+                  console.warn("Parent: ", elm);
+                  console.warn(
+                    "Mismatching childNodes vs. VNodes: ",
+                    elm.childNodes,
+                    children
+                  );
                 }
-                return false
+                return false;
               }
             }
           }
@@ -6786,56 +6968,77 @@
             if (!isRenderedModule(key)) {
               fullInvoke = true;
               invokeCreateHooks(vnode, insertedVnodeQueue);
-              break
+              break;
             }
           }
-          if (!fullInvoke && data['class']) {
+          if (!fullInvoke && data["class"]) {
             // ensure collecting deps for deep class bindings for future updates
-            traverse(data['class']);
+            traverse(data["class"]);
           }
         }
       } else if (elm.data !== vnode.text) {
         elm.data = vnode.text;
       }
-      return true
+      return true;
     }
 
-    function assertNodeMatch (node, vnode, inVPre) {
+    function assertNodeMatch(node, vnode, inVPre) {
       if (isDef(vnode.tag)) {
-        return vnode.tag.indexOf('vue-component') === 0 || (
-          !isUnknownElement$$1(vnode, inVPre) &&
-          vnode.tag.toLowerCase() === (node.tagName && node.tagName.toLowerCase())
-        )
+        return (
+          vnode.tag.indexOf("vue-component") === 0 ||
+          (!isUnknownElement$$1(vnode, inVPre) &&
+            vnode.tag.toLowerCase() ===
+              (node.tagName && node.tagName.toLowerCase()))
+        );
       } else {
-        return node.nodeType === (vnode.isComment ? 8 : 3)
+        return node.nodeType === (vnode.isComment ? 8 : 3);
       }
     }
 
     // 函数柯里化，让一个函数返回一个函数
-    
-    return function patch (oldVnode, vnode, hydrating, removeOnly) {
+    // createPatchFunction({ nodeOps, modules }) 传入平台相关的两个参数
+
+    // core中的createPatchFunction (backend), const { modules, nodeOps } = backend
+    // core中方法和平台无关，传入两个参数后，可以在上面的函数中使用这两个参数
+    return function patch(oldVnode, vnode, hydrating, removeOnly) {
+      // 新的VNode不存在
       if (isUndef(vnode)) {
+        // 老的VNode存在，执行Destory钩子函数。此处应该是说明节点被删除了
         if (isDef(oldVnode)) { invokeDestroyHook(oldVnode); }
-        return
+        return;
       }
 
       var isInitialPatch = false;
+
+      // 新插入的VNode节点队列，该数组会存储新插入的Vnode节点，目的是这些节点插入到Dom树上后，
+      // 去触发这些VNode上的inserted钩子函数。
       var insertedVnodeQueue = [];
 
+      // 老的VNode不存在
       if (isUndef(oldVnode)) {
         // empty mount (likely as component), create new root element
         isInitialPatch = true;
+        // 创建新的VNode
         createElm(vnode, insertedVnodeQueue);
       } else {
+        // 新的和老的 VNode 都存在，则要比对差异进行更新
         var isRealElement = isDef(oldVnode.nodeType);
         if (!isRealElement && sameVnode(oldVnode, vnode)) {
+          // 判断参数1-老VNode是否是真实DOM，如果不是真实DOM，则判断新老节点是不是同一节点
+          // 如果是的话，则进行patchVnode更新差异。
+
           // patch existing root node
+          // 更新操作，diff 算法
           patchVnode(oldVnode, vnode, insertedVnodeQueue, null, null, removeOnly);
         } else {
+          // 如果oldVnode是真实DOM，或者新老node不是相同节点，则走这里逻辑
           if (isRealElement) {
+            // 第一个参数是否是真实 DOM，如果是则说明为首次渲染
+            // 初始化
             // mounting to a real element
             // check if this is server-rendered content and if we can perform
             // a successful hydration.
+            // 处理SSR相关代码
             if (oldVnode.nodeType === 1 && oldVnode.hasAttribute(SSR_ATTR)) {
               oldVnode.removeAttribute(SSR_ATTR);
               hydrating = true;
@@ -6843,38 +7046,45 @@
             if (isTrue(hydrating)) {
               if (hydrate(oldVnode, vnode, insertedVnodeQueue)) {
                 invokeInsertHook(vnode, insertedVnodeQueue, true);
-                return oldVnode
+                return oldVnode;
               } else {
                 warn(
-                  'The client-side rendered virtual DOM tree is not matching ' +
-                  'server-rendered content. This is likely caused by incorrect ' +
-                  'HTML markup, for example nesting block-level elements inside ' +
-                  '<p>, or missing <tbody>. Bailing hydration and performing ' +
-                  'full client-side render.'
+                  "The client-side rendered virtual DOM tree is not matching " +
+                    "server-rendered content. This is likely caused by incorrect " +
+                    "HTML markup, for example nesting block-level elements inside " +
+                    "<p>, or missing <tbody>. Bailing hydration and performing " +
+                    "full client-side render."
                 );
               }
             }
             // either not server-rendered, or hydration failed.
             // create an empty node and replace it
+
+            // 这里的核心就是，如果oldVnode是个真实Dom，就在这里将它转化成一个vnode节点
             oldVnode = emptyNodeAt(oldVnode);
           }
 
           // replacing existing element
+          // 获取老节点真实DOM，获取它的目的是找到它的父元素
+          // 找父元素是因为，要将VNode转化成真实DOM，挂载到这个parentElm上来。
           var oldElm = oldVnode.elm;
           var parentElm = nodeOps.parentNode(oldElm);
 
           // create new node
+          // c'g'hua
+          // 传了第四个参数则会把VNode插入到这个参数之前，并且把vnode记录到insertedVnodeQueue中来
           createElm(
             vnode,
             insertedVnodeQueue,
             // extremely rare edge case: do not insert if old element is in a
             // leaving transition. Only happens when combining transition +
             // keep-alive + HOCs. (#4590)
-            oldElm._leaveCb ? null : parentElm,
+            oldElm._leaveCb ? null : parentElm, // 这里的判断，是为了处理transition动画
             nodeOps.nextSibling(oldElm)
           );
 
           // update parent placeholder node element, recursively
+          // 处理父元素占位符的问题
           if (isDef(vnode.parent)) {
             var ancestor = vnode.parent;
             var patchable = isPatchable(vnode);
@@ -6905,17 +7115,20 @@
           }
 
           // destroy old node
+          // 如果老节点有真实DOM，则移除并执行内部的钩子函数
           if (isDef(parentElm)) {
             removeVnodes([oldVnode], 0, 0);
           } else if (isDef(oldVnode.tag)) {
+            // 如果老节点没有真实DOM，且有tag属性，则执行DestroyHook
             invokeDestroyHook(oldVnode);
           }
         }
       }
 
+      // 触发insertedVnodeQueue中所有vnode的inserted钩子函数
       invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch);
-      return vnode.elm
-    }
+      return vnode.elm;
+    };
   }
 
   /*  */

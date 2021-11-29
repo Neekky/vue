@@ -26,7 +26,12 @@
               id: 'title'
             },
             key: 111,
-            test: 234234234234
+            test: 234231114234234,
+            hook: {
+              create: function () {
+                console.log("这个会不会执行");
+              }
+            }
           },
           [
             h('div', [
@@ -39,11 +44,15 @@
                 'span',
                 "不会哒"
               )
-            ]), this.msg, h('span',["还有什么",h('span',"111")])
+            ]), this.msg, h('span', ["还有11什么", h('span', "111")])
           ]
         )
         console.log(this, 11111)
         return vnode
+      },
+      created: function () {
+        // `this` 指向 vm 实例
+        console.log('a is: ' + this.a)
       },
       data: {
         msg: 'Hello Vue'
