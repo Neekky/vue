@@ -5,11 +5,13 @@ import { detectErrors } from './error-detector'
 import { createCompileToFunctionFn } from './to-function'
 
 export function createCompilerCreator (baseCompile: Function): Function {
+  // baseOptions 平台相关的options
   return function createCompiler (baseOptions: CompilerOptions) {
     function compile (
       template: string,
       options?: CompilerOptions
     ): CompiledResult {
+      // 原型指向baseOptions，作用是合并baseOptions和options
       const finalOptions = Object.create(baseOptions)
       const errors = []
       const tips = []

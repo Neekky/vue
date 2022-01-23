@@ -63,7 +63,10 @@ export function parseHTML (html, options) {
     // Make sure we're not in a plaintext content element like script/style
     if (!lastTag || !isPlainTextElement(lastTag)) {
       let textEnd = html.indexOf('<')
+
+      // 从一个标签开始节点，判断当前为什么类型节点
       if (textEnd === 0) {
+        // 判断是否是注释节点，如果是，则执行方法，截取剩余html内容
         // Comment:
         if (comment.test(html)) {
           const commentEnd = html.indexOf('-->')
@@ -248,6 +251,7 @@ export function parseHTML (html, options) {
     }
 
     if (options.start) {
+      console.log(attrs, "查看attrs");
       options.start(tagName, attrs, unary, match.start, match.end)
     }
   }

@@ -11,6 +11,7 @@
     <hr>
     {{ user.fullName }}
     {{test}}
+    <div v-if="flag">测试v-if</div>
   </div>
 
   <script src="../../dist/vue.js"></script>
@@ -24,7 +25,8 @@
           lastName: '亮',
           fullName: ''
         },
-        test: 123123
+        test: 123123,
+        flag: true
       },
       computed: {
         reversedMessage: function () {

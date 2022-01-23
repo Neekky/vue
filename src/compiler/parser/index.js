@@ -80,6 +80,7 @@ export function parse (
   template: string,
   options: CompilerOptions
 ): ASTElement | void {
+  // 1. 解析 options
   warn = options.warn || baseWarn
 
   platformIsPreTag = options.isPreTag || no
@@ -205,6 +206,7 @@ export function parse (
     }
   }
 
+  // 2. 对模板解析
   parseHTML(template, {
     warn,
     expectHTML: options.expectHTML,
@@ -214,6 +216,8 @@ export function parse (
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
     outputSourceRange: options.outputSourceRange,
+    // 以下为解析过程中的回调函数，生成 AST。解析到对应内容时，执行的回调函数
+    // 开始标签
     start (tag, attrs, unary, start, end) {
       // check namespace.
       // inherit parent ns if there is one
@@ -300,7 +304,7 @@ export function parse (
         closeElement(element)
       }
     },
-
+    // 结束标签
     end (tag, start, end) {
       const element = stack[stack.length - 1]
       // pop stack
@@ -311,7 +315,7 @@ export function parse (
       }
       closeElement(element)
     },
-
+    // 文本内容
     chars (text: string, start: number, end: number) {
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
@@ -383,6 +387,7 @@ export function parse (
         }
       }
     },
+    // 注释节点
     comment (text: string, start, end) {
       // adding anything as a sibling to the root node is forbidden
       // comments should still be allowed, but ignored
@@ -400,6 +405,7 @@ export function parse (
       }
     }
   })
+  console.log(root, "查看root");
   return root
 }
 
