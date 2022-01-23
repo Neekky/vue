@@ -12470,6 +12470,7 @@
       // 优化抽象语法树
       optimize(ast, options);
     }
+    console.log(options, "options1123");
     // 把抽象语法树生成字符串形式的 js 代码
     var code = generate(ast, options);
     return {
