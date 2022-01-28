@@ -28,6 +28,7 @@ export function renderStatic (
  * Runtime helper for v-once.
  * Effectively it means marking the node as static with a unique key.
  */
+// 将vnode节点标记为静态的
 export function markOnce (
   tree: VNode | Array<VNode>,
   index: number,
@@ -53,6 +54,7 @@ function markStatic (
   }
 }
 
+// 将来进行patch时，如果isStatic为true，则不会再进行比对
 function markStaticNode (node, key, isOnce) {
   node.isStatic = true
   node.key = key

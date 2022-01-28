@@ -2955,6 +2955,7 @@
    * Runtime helper for v-once.
    * Effectively it means marking the node as static with a unique key.
    */
+  // 将vnode节点标记为静态的
   function markOnce (
     tree,
     index,
@@ -2980,6 +2981,7 @@
     }
   }
 
+  // 将来进行patch时，如果isStatic为true，则不会再进行比对
   function markStaticNode (node, key, isOnce) {
     node.isStatic = true;
     node.key = key;
@@ -11541,7 +11543,9 @@
     var isReservedTag = options.isReservedTag || no;
     this.maybeComponent = function (el) { return !!el.component || !isReservedTag(el.tag); };
     this.onceId = 0;
+    // 这个属性用于存储静态根节点生成的代码
     this.staticRenderFns = [];
+    // 这个属性记录，当前处理的节点是否使用v-pre标记的
     this.pre = false;
   };
 
@@ -11551,9 +11555,11 @@
     ast,
     options
   ) {
+    // 创建一个代码生成过程中所使用的状态对象
     var state = new CodegenState(options);
     // fix #11483, Root level <script> tags should not be rendered.
     var code = ast ? (ast.tag === 'script' ? 'null' : genElement(ast, state)) : '_c("div")';
+    console.log(code, "213123321");
     return {
       render: ("with(this){return " + code + "}"),
       staticRenderFns: state.staticRenderFns
@@ -11561,23 +11567,32 @@
   }
 
   function genElement (el, state) {
+    // 判断父节点的pre属性，v-pre声明的一般是静态节点，其子节点一般也会是静态的
     if (el.parent) {
       el.pre = el.pre || el.parent.pre;
     }
 
     if (el.staticRoot && !el.staticProcessed) {
       return genStatic(el, state)
-    } else if (el.once && !el.onceProcessed) {
+    } 
+    // 这里挨个处理AST中的Vue指令，v-once，v-for，v-if等指令
+    else if (el.once && !el.onceProcessed) {
       return genOnce(el, state)
     } else if (el.for && !el.forProcessed) {
       return genFor(el, state)
     } else if (el.if && !el.ifProcessed) {
       return genIf(el, state)
-    } else if (el.tag === 'template' && !el.slotTarget && !state.pre) {
+    } 
+    // 如果是template标签，并且不是slot，且不是静态节点。
+    // 则会去生成其子节点中的渲染代码，默认返回'void 0'，也就是undefined
+    else if (el.tag === 'template' && !el.slotTarget && !state.pre) {
       return genChildren(el, state) || 'void 0'
-    } else if (el.tag === 'slot') {
+    } 
+    // 处理slot标签
+    else if (el.tag === 'slot') {
       return genSlot(el, state)
     } else {
+      // 以上都不满足，则处理组件或内置标签
       // component or element
       var code;
       if (el.component) {
@@ -11585,7 +11600,11 @@
       } else {
         var data;
         if (!el.plain || (el.pre && state.maybeComponent(el))) {
+          // 生成元素的属性/指令/事件等
+          // 处理各种指令，包括 genDirectives（model/text/html）
+          // 这里返回的data，就是createElement方法中所需的第二个属性参数
           data = genData$2(el, state);
+          console.log(data, "查看字符生成的data");
         }
 
         var children = el.inlineTemplate ? null : genChildren(el, state, true);
@@ -11601,6 +11620,7 @@
 
   // hoist static sub-trees out
   function genStatic (el, state) {
+    console.log(el, "ellll");
     el.staticProcessed = true;
     // Some elements (templates) need to behave differently inside of a v-pre
     // node.  All pre nodes are static roots, so we can use this as a location to
@@ -11956,6 +11976,7 @@
       var normalizationType$1 = checkSkip
         ? getNormalizationType(children, state.maybeComponent)
         : 0;
+      // 获取gen函数，用于生成子节点，并在结果中使用join方法，拼接起来
       var gen = altGenNode || genNode;
       return ("[" + (children.map(function (c) { return gen(c, state); }).join(',')) + "]" + (normalizationType$1 ? ("," + normalizationType$1) : ''))
     }
@@ -11993,6 +12014,7 @@
   }
 
   function genNode (node, state) {
+    // 根据type类型，生成不同的元素节点
     if (node.type === 1) {
       return genElement(node, state)
     } else if (node.type === 3 && node.isComment) {
@@ -12353,6 +12375,8 @@
         return createFunction(code, fnGenErrors);
       });
 
+      console.log(res.render, res.staticRenderFns, "q123q23");
+
       // check function generation errors.
       // this should only happen if there is a bug in the compiler itself.
       // mostly for codegen development use
@@ -12459,7 +12483,7 @@
   // parser/optimizer/codegen, e.g the SSR optimizing compiler.
   // Here we just export a default compiler using the default parts.
   // 此处又通过createCompilerCreator处理，传入了一个核心函数，再返回一个函数
-  var createCompiler = createCompilerCreator(function baseCompile (
+  var createCompiler = createCompilerCreator(function baseCompile(
     template,
     options
   ) {
@@ -12473,13 +12497,14 @@
     console.log(options, "options1123");
     // 把抽象语法树生成字符串形式的 js 代码
     var code = generate(ast, options);
+    console.log(code, "查看优化后的code");
     return {
       ast: ast,
       // 渲染函数
       render: code.render,
       // 静态渲染函数，生成静态 VNode 树
-      staticRenderFns: code.staticRenderFns
-    }
+      staticRenderFns: code.staticRenderFns,
+    };
   });
 
   /*  */

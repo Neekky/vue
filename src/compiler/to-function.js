@@ -103,6 +103,8 @@ export function createCompileToFunctionFn(compile: Function): Function {
       return createFunction(code, fnGenErrors);
     });
 
+    console.log(res.render, res.staticRenderFns, "q123q23");
+
     // check function generation errors.
     // this should only happen if there is a bug in the compiler itself.
     // mostly for codegen development use

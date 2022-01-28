@@ -8,16 +8,18 @@
 <body>
   <div id="app">
     <h1>Vue<span>模板编译过程</span></h1>
-    <div>{{ msg }}<p>hello</p></div>
-    <div>是否显示<span>这也是静态根节点</span></div>
+    <p>{{ msg }}</p>
+    <comp @myclick="handler"></comp>
   </div>
   <script src="../../dist/vue.js"></script>
   <script>
+    Vue.component('comp', {
+      template: '<div>I am a comp</div>'
+    })
     const vm = new Vue({
       el: '#app',
       data: {
-        msg: 'Hello compiler',
-        isShow: false
+        msg: 'Hello compiler'
       },
       methods: {
         handler () {
@@ -25,6 +27,7 @@
         }
       }
     })
+    console.log(vm.$options.render)
   </script>
 </body>
 </html>
